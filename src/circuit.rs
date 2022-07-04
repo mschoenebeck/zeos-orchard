@@ -566,8 +566,11 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 g_d_old.inner(),
                 pk_d_old.inner(),
                 v_old.clone(),
-                rho_old,
+                rho_old.clone(),
                 psi_old,
+                v_old.clone(),
+                v_old.clone(),
+                v_old.clone(),
                 rcm_old,
             )?;
 
@@ -624,8 +627,11 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 g_d_new.inner(),
                 pk_d_new.inner(),
                 v_new.clone(),
-                rho_new,
+                rho_new.clone(),
                 psi_new,
+                v_new.clone(),
+                v_new.clone(),
+                v_new.clone(),
                 rcm_new,
             )?;
 
