@@ -1,6 +1,6 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656088854288,
-  "repoUrl": "https://github.com/zcash/orchard",
+  "lastUpdate": 1656897553503,
+  "repoUrl": "https://github.com/mschoenebeck/zeos-orchard",
   "entries": {
     "Orchard Benchmarks": [
       {
@@ -1619,6 +1619,54 @@ window.BENCHMARK_DATA = {
             "name": "default_address",
             "value": 638128,
             "range": "± 1849",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "committer": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "distinct": true,
+          "id": "25724ea161eecff7f1358f08d05da508b6fbeafe",
+          "message": "extended NoteCommitChip according to ZEOS specification adding d1, d2, nft, sc (zcash's 'value' becomes 'd1')",
+          "timestamp": "2022-07-03T20:07:19-05:00",
+          "tree_id": "95601e1a50286f39619a0180d4ab30bc0b7488ce",
+          "url": "https://github.com/mschoenebeck/zeos-orchard/commit/25724ea161eecff7f1358f08d05da508b6fbeafe"
+        },
+        "date": 1656897552514,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "proving/bundle/1",
+            "value": 3946220645,
+            "range": "± 309866635",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/2",
+            "value": 3943865444,
+            "range": "± 7813759",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/3",
+            "value": 5629940125,
+            "range": "± 17320475",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/4",
+            "value": 7317206425,
+            "range": "± 29215417",
             "unit": "ns/iter"
           }
         ]
