@@ -71,7 +71,7 @@ impl SpendInfo {
     ///
     /// [orcharddummynotes]: https://zips.z.cash/protocol/nu5.pdf#orcharddummynotes
     fn dummy(rng: &mut impl RngCore) -> Self {
-        let (sk, fvk, note) = Note::dummy(rng, None);
+        let (sk, fvk, note) = Note::dummy(rng, None, None);
         let merkle_path = MerklePath::dummy(rng);
 
         SpendInfo {
@@ -131,7 +131,7 @@ impl ActionInfo {
 
     /// Returns the value sum for this action.
     fn value_sum(&self) -> ValueSum {
-        self.spend.note.value() - self.output.value
+        self.spend.note.d1() - self.output.value  // TODO
     }
 
     /// Builds the action.
@@ -140,19 +140,19 @@ impl ActionInfo {
     ///
     /// [orchardsend]: https://zips.z.cash/protocol/nu5.pdf#orchardsend
     fn build(self, mut rng: impl RngCore) -> (Action<SigningMetadata>, Circuit) {
-        let v_net = self.value_sum();
-        let cv_net = ValueCommitment::derive(v_net, self.rcv.clone());
+        let v_net = self.value_sum(); // TODO
+        let cv_net = ValueCommitment::derive(v_net, self.rcv.clone()); // TODO
 
-        let nf_old = self.spend.note.nullifier(&self.spend.fvk);
+        let nf_a = self.spend.note.nullifier(&self.spend.fvk);
         let sender_address = self.spend.note.recipient();
-        let rho_old = self.spend.note.rho();
-        let psi_old = self.spend.note.rseed().psi(&rho_old);
-        let rcm_old = self.spend.note.rseed().rcm(&rho_old);
+        let rho_a = self.spend.note.rho();
+        let psi_a = self.spend.note.rseed().psi(&rho_a);
+        let rcm_a = self.spend.note.rseed().rcm(&rho_a);
         let ak: SpendValidatingKey = self.spend.fvk.clone().into();
         let alpha = pallas::Scalar::random(&mut rng);
         let rk = ak.randomize(&alpha);
 
-        let note = Note::new(self.output.recipient, self.output.value, nf_old, &mut rng);
+        let note = Note::new(self.output.recipient, self.output.value, self.output.value, self.output.value, self.output.value, nf_a, &mut rng); // TODO
         let cm_new = note.commitment();
         let cmx = cm_new.into();
 
@@ -175,7 +175,7 @@ impl ActionInfo {
 
         (
             Action::from_parts(
-                nf_old,
+                nf_a,
                 rk,
                 cmx,
                 encrypted_note,
@@ -189,25 +189,32 @@ impl ActionInfo {
                 },
             ),
             Circuit {
+                nft: Value::known(NoteValue::from_raw(0)),
                 path: Value::known(self.spend.merkle_path.auth_path()),
                 pos: Value::known(self.spend.merkle_path.position()),
-                g_d_old: Value::known(sender_address.g_d()),
-                pk_d_old: Value::known(*sender_address.pk_d()),
-                v_old: Value::known(self.spend.note.value()),
-                rho_old: Value::known(rho_old),
-                psi_old: Value::known(psi_old),
-                rcm_old: Value::known(rcm_old),
-                cm_old: Value::known(self.spend.note.commitment()),
+                g_d_a: Value::known(sender_address.g_d()),
+                pk_d_a: Value::known(*sender_address.pk_d()),
+                d1_a: Value::known(self.spend.note.d1()),
+                d2_a: Value::known(self.spend.note.d2()), // TODO
+                rho_a: Value::known(rho_a),
+                psi_a: Value::known(psi_a),
+                rcm_a: Value::known(rcm_a),
+                cm_a: Value::known(self.spend.note.commitment()),
                 alpha: Value::known(alpha),
                 ak: Value::known(ak),
                 nk: Value::known(*self.spend.fvk.nk()),
                 rivk: Value::known(self.spend.fvk.rivk(self.spend.scope)),
-                g_d_new: Value::known(note.recipient().g_d()),
-                pk_d_new: Value::known(*note.recipient().pk_d()),
-                v_new: Value::known(note.value()),
-                psi_new: Value::known(note.rseed().psi(&note.rho())),
-                rcm_new: Value::known(note.rseed().rcm(&note.rho())),
-                rcv: Value::known(self.rcv),
+                g_d_b: Value::known(note.recipient().g_d()),
+                pk_d_b: Value::known(*note.recipient().pk_d()),
+                d1_b: Value::known(note.d1()),
+                d2_b: Value::known(note.d2()),
+                sc_b: Value::known(note.sc()),
+                rho_b: Value::known(nf_a),
+                psi_b: Value::known(note.rseed().psi(&note.rho())),
+                rcm_b: Value::known(note.rseed().rcm(&note.rho())),
+                d1_c: Value::known(note.d1()), // TODO
+                psi_c: Value::known(note.rseed().psi(&note.rho())), // TODO
+                rcm_c: Value::known(note.rseed().rcm(&note.rho())), // TODO
             },
         )
     }

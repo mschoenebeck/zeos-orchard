@@ -85,7 +85,10 @@ pub struct Note {
     /// The recipient of the funds.
     recipient: Address,
     /// The value of this note.
-    value: NoteValue,
+    d1: NoteValue,
+    d2: NoteValue,
+    sc: NoteValue,
+    nft: NoteValue,
     /// A unique creation ID for this note.
     ///
     /// This is set to the nullifier of the note that was spent in the [`Action`] that
@@ -110,13 +113,19 @@ impl Eq for Note {}
 impl Note {
     pub(crate) fn from_parts(
         recipient: Address,
-        value: NoteValue,
+        d1: NoteValue,
+        d2: NoteValue,
+        sc: NoteValue,
+        nft: NoteValue,
         rho: Nullifier,
         rseed: RandomSeed,
     ) -> Self {
         Note {
             recipient,
-            value,
+            d1,
+            d2,
+            sc,
+            nft,
             rho,
             rseed,
         }
@@ -129,14 +138,20 @@ impl Note {
     /// [orchardsend]: https://zips.z.cash/protocol/nu5.pdf#orchardsend
     pub(crate) fn new(
         recipient: Address,
-        value: NoteValue,
+        d1: NoteValue,
+        d2: NoteValue,
+        sc: NoteValue,
+        nft: NoteValue,
         rho: Nullifier,
         mut rng: impl RngCore,
     ) -> Self {
         loop {
             let note = Note {
                 recipient,
-                value,
+                d1,
+                d2,
+                sc,
+                nft,
                 rho,
                 rseed: RandomSeed::random(&mut rng, &rho),
             };
@@ -154,6 +169,7 @@ impl Note {
     pub(crate) fn dummy(
         rng: &mut impl RngCore,
         rho: Option<Nullifier>,
+        val: Option<NoteValue>,
     ) -> (SpendingKey, FullViewingKey, Self) {
         let sk = SpendingKey::random(rng);
         let fvk: FullViewingKey = (&sk).into();
@@ -161,6 +177,9 @@ impl Note {
 
         let note = Note::new(
             recipient,
+            val.unwrap_or_else(|| NoteValue::zero()),
+            NoteValue::zero(),
+            NoteValue::zero(),
             NoteValue::zero(),
             rho.unwrap_or_else(|| Nullifier::dummy(rng)),
             rng,
@@ -175,8 +194,23 @@ impl Note {
     }
 
     /// Returns the value of this note.
-    pub fn value(&self) -> NoteValue {
-        self.value
+    pub fn d1(&self) -> NoteValue {
+        self.d1
+    }
+
+    /// Returns the value of this note.
+    pub fn d2(&self) -> NoteValue {
+        self.d2
+    }
+
+    /// Returns the value of this note.
+    pub fn sc(&self) -> NoteValue {
+        self.sc
+    }
+
+    /// Returns the value of this note.
+    pub fn nft(&self) -> NoteValue {
+        self.nft
     }
 
     /// Returns the rseed value of this note.
@@ -219,7 +253,10 @@ impl Note {
         NoteCommitment::derive(
             g_d.to_bytes(),
             self.recipient.pk_d().to_bytes(),
-            self.value,
+            self.d1,
+            self.d2,
+            self.sc,
+            self.nft,
             self.rho.0,
             self.rseed.psi(&self.rho),
             self.rseed.rcm(&self.rho),
@@ -280,14 +317,17 @@ pub mod testing {
 
     prop_compose! {
         /// Generate an action without authorization data.
-        pub fn arb_note(value: NoteValue)(
+        pub fn arb_note(d1: NoteValue)(
             recipient in arb_address(),
             rho in arb_nullifier(),
             rseed in arb_rseed(),
         ) -> Note {
             Note {
                 recipient,
-                value,
+                d1,
+                d2: d1,
+                sc: d1,
+                nft: NoteValue::from_raw(0),
                 rho,
                 rseed,
             }

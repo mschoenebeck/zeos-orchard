@@ -75,7 +75,7 @@ where
     let pk_d = get_validated_pk_d(&diversifier)?;
 
     let recipient = Address::from_parts(diversifier, pk_d);
-    let note = Note::from_parts(recipient, value, domain.rho, rseed);
+    let note = Note::from_parts(recipient, value, value, value, value, domain.rho, rseed); // TODO
     Some((note, recipient))
 }
 
@@ -155,7 +155,7 @@ impl Domain for OrchardDomain {
         let mut np = [0; NOTE_PLAINTEXT_SIZE];
         np[0] = 0x02;
         np[1..12].copy_from_slice(note.recipient().diversifier().as_array());
-        np[12..20].copy_from_slice(&note.value().to_bytes());
+        np[12..20].copy_from_slice(&note.d1().to_bytes()); // TODO
         np[20..52].copy_from_slice(note.rseed().as_bytes());
         np[52..].copy_from_slice(memo);
         NotePlaintextBytes(np)
@@ -396,7 +396,7 @@ mod tests {
             assert_eq!(ock.as_ref(), tv.ock);
 
             let recipient = Address::from_parts(d, pk_d);
-            let note = Note::from_parts(recipient, value, rho, rseed);
+            let note = Note::from_parts(recipient, value, value, value, value, rho, rseed); // TODO
             assert_eq!(ExtractedNoteCommitment::from(note.commitment()), cmx);
 
             let action = Action::from_parts(

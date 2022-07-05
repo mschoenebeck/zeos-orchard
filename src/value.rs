@@ -122,6 +122,12 @@ impl From<&NoteValue> for Assigned<pallas::Base> {
     }
 }
 
+impl From<ValueSum> for NoteValue {
+    fn from(v: ValueSum) -> Self {
+        NoteValue::from_raw(v.0 as u64)
+    }
+}
+
 impl Sub for NoteValue {
     type Output = ValueSum;
 

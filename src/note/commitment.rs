@@ -40,7 +40,10 @@ impl NoteCommitment {
     pub(super) fn derive(
         g_d: [u8; 32],
         pk_d: [u8; 32],
-        v: NoteValue,
+        d1: NoteValue,
+        d2: NoteValue,
+        sc: NoteValue,
+        nft: NoteValue,
         rho: pallas::Base,
         psi: pallas::Base,
         rcm: NoteCommitTrapdoor,
@@ -51,9 +54,12 @@ impl NoteCommitment {
                 iter::empty()
                     .chain(BitArray::<_, Lsb0>::new(g_d).iter().by_vals())
                     .chain(BitArray::<_, Lsb0>::new(pk_d).iter().by_vals())
-                    .chain(v.to_le_bits().iter().by_vals())
+                    .chain(d1.to_le_bits().iter().by_vals())
                     .chain(rho.to_le_bits().iter().by_vals().take(L_ORCHARD_BASE))
-                    .chain(psi.to_le_bits().iter().by_vals().take(L_ORCHARD_BASE)),
+                    .chain(psi.to_le_bits().iter().by_vals().take(L_ORCHARD_BASE))
+                    .chain(d2.to_le_bits().iter().by_vals())
+                    .chain(nft.to_le_bits().iter().by_vals().take(1))
+                    .chain(sc.to_le_bits().iter().by_vals()),
                 &rcm.0,
             )
             .map(NoteCommitment)

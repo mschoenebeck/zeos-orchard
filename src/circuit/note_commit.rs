@@ -51,7 +51,7 @@ type CanonicityBounds = (
         - rho is a base field element (255 bits); and
         - psi is a base field element (255 bits).
         - d2 is a 64-bit value
-        - nft is a boolean value
+        - nft is a 1-bit value
         - sc is a 64-bit value
 */
 

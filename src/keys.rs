@@ -1047,6 +1047,9 @@ mod tests {
             let note = Note::from_parts(
                 addr,
                 NoteValue::from_raw(tv.note_v),
+                NoteValue::from_raw(tv.note_v),
+                NoteValue::from_raw(tv.note_v),
+                NoteValue::from_raw(0), // TODO
                 rho,
                 RandomSeed::from_bytes(tv.note_rseed, &rho).unwrap(),
             );

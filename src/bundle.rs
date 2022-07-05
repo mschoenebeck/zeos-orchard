@@ -22,7 +22,7 @@ use crate::{
     note_encryption::OrchardDomain,
     primitives::redpallas::{self, Binding, SpendAuth},
     tree::Anchor,
-    value::{ValueCommitTrapdoor, ValueCommitment, ValueSum},
+    value::{ValueCommitTrapdoor, ValueCommitment, ValueSum, NoteValue},
 };
 
 impl<T> Action<T> {
@@ -31,12 +31,14 @@ impl<T> Action<T> {
     pub fn to_instance(&self, flags: Flags, anchor: Anchor) -> Instance {
         Instance {
             anchor,
-            cv_net: self.cv_net().clone(),
-            nf_old: *self.nullifier(),
+            nf: *self.nullifier(),
             rk: self.rk().clone(),
-            cmx: *self.cmx(),
-            enable_spend: flags.spends_enabled,
-            enable_output: flags.outputs_enabled,
+            nft: true, // TODO
+            b_d1: NoteValue::from_raw(0), // TODO
+            b_d2: NoteValue::from_raw(0), // TODO
+            b_sc: NoteValue::from_raw(0), // TODO
+            cmb: *self.cmx(), // TODO
+            cmc: *self.cmx(), // TODO
         }
     }
 }

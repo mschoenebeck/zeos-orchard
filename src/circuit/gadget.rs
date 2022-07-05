@@ -68,12 +68,16 @@ impl super::Config {
         PoseidonChip::construct(self.poseidon_config.clone())
     }
 
-    pub(super) fn note_commit_chip_new(&self) -> NoteCommitChip {
-        NoteCommitChip::construct(self.new_note_commit_config.clone())
+    pub(super) fn note_commit_chip_a(&self) -> NoteCommitChip {
+        NoteCommitChip::construct(self.a_note_commit_config.clone())
     }
 
-    pub(super) fn note_commit_chip_old(&self) -> NoteCommitChip {
-        NoteCommitChip::construct(self.old_note_commit_config.clone())
+    pub(super) fn note_commit_chip_b(&self) -> NoteCommitChip {
+        NoteCommitChip::construct(self.b_note_commit_config.clone())
+    }
+
+    pub(super) fn note_commit_chip_c(&self) -> NoteCommitChip {
+        NoteCommitChip::construct(self.c_note_commit_config.clone())
     }
 }
 
