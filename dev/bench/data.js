@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656897553503,
+  "lastUpdate": 1657059256052,
   "repoUrl": "https://github.com/mschoenebeck/zeos-orchard",
   "entries": {
     "Orchard Benchmarks": [
@@ -1667,6 +1667,54 @@ window.BENCHMARK_DATA = {
             "name": "proving/bundle/4",
             "value": 7317206425,
             "range": "± 29215417",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "committer": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "distinct": true,
+          "id": "d3eba297c1ec20de1fbf0ec45579285e2fe4b166",
+          "message": "top level circuit implemented and first unit test successful",
+          "timestamp": "2022-07-05T17:01:00-05:00",
+          "tree_id": "b195d5c2c067ce210767986d9ec8f4475f949565",
+          "url": "https://github.com/mschoenebeck/zeos-orchard/commit/d3eba297c1ec20de1fbf0ec45579285e2fe4b166"
+        },
+        "date": 1657059254964,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "proving/bundle/1",
+            "value": 4851275295,
+            "range": "± 88906697",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/2",
+            "value": 4944907401,
+            "range": "± 22685280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/3",
+            "value": 6934604993,
+            "range": "± 151392486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/4",
+            "value": 8960258515,
+            "range": "± 111241885",
             "unit": "ns/iter"
           }
         ]
