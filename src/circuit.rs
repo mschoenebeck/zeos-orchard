@@ -1247,6 +1247,7 @@ mod tests {
         assert!(proof.verify(&vk, &[instance]).is_ok());
     }*/
 
+    // cargo test --features dev-graph --package orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
     #[cfg(feature = "dev-graph")]
     #[test]
     fn print_action_circuit() {
@@ -1255,29 +1256,35 @@ mod tests {
         let root = BitMapBackend::new("action-circuit-layout.png", (1024, 768)).into_drawing_area();
         root.fill(&WHITE).unwrap();
         let root = root
-            .titled("Orchard Action Circuit", ("sans-serif", 60))
+            .titled("ZEOS Action Circuit", ("sans-serif", 60))
             .unwrap();
 
         let circuit = Circuit {
             path: Value::unknown(),
             pos: Value::unknown(),
-            g_d_old: Value::unknown(),
-            pk_d_old: Value::unknown(),
-            v_old: Value::unknown(),
-            rho_old: Value::unknown(),
-            psi_old: Value::unknown(),
-            rcm_old: Value::unknown(),
-            cm_old: Value::unknown(),
+            g_d_a: Value::unknown(),
+            pk_d_a: Value::unknown(),
+            d1_a: Value::unknown(),
+            d2_a: Value::unknown(),
+            rho_a: Value::unknown(),
+            psi_a: Value::unknown(),
+            rcm_a: Value::unknown(),
+            cm_a: Value::unknown(),
             alpha: Value::unknown(),
             ak: Value::unknown(),
             nk: Value::unknown(),
             rivk: Value::unknown(),
-            g_d_new: Value::unknown(),
-            pk_d_new: Value::unknown(),
-            v_new: Value::unknown(),
-            psi_new: Value::unknown(),
-            rcm_new: Value::unknown(),
-            rcv: Value::unknown(),
+            g_d_b: Value::unknown(),
+            pk_d_b: Value::unknown(),
+            d1_b: Value::unknown(),
+            d2_b: Value::unknown(),
+            sc_b: Value::unknown(),
+            rho_b: Value::unknown(),
+            psi_b: Value::unknown(),
+            rcm_b: Value::unknown(),
+            d1_c: Value::unknown(),
+            psi_c: Value::unknown(),
+            rcm_c: Value::unknown(),
         };
         halo2_proofs::dev::CircuitLayout::default()
             .show_labels(false)
