@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657059256052,
+  "lastUpdate": 1657067845796,
   "repoUrl": "https://github.com/mschoenebeck/zeos-orchard",
   "entries": {
     "Orchard Benchmarks": [
@@ -1715,6 +1715,54 @@ window.BENCHMARK_DATA = {
             "name": "proving/bundle/4",
             "value": 8960258515,
             "range": "± 111241885",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "committer": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "distinct": true,
+          "id": "cf76fb38a2db2f410fb006b1be3f4910bb806a8a",
+          "message": "removed private nft input signal. it is loaded from instance column now",
+          "timestamp": "2022-07-05T19:20:40-05:00",
+          "tree_id": "2af878c8658013402cce286fec337a01f24b4a1a",
+          "url": "https://github.com/mschoenebeck/zeos-orchard/commit/cf76fb38a2db2f410fb006b1be3f4910bb806a8a"
+        },
+        "date": 1657067844344,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "proving/bundle/1",
+            "value": 5933419842,
+            "range": "± 105275044",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/2",
+            "value": 5854606740,
+            "range": "± 51060863",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/3",
+            "value": 8464877340,
+            "range": "± 89463509",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/4",
+            "value": 11079375420,
+            "range": "± 48403685",
             "unit": "ns/iter"
           }
         ]
