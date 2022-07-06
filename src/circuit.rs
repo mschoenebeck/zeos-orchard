@@ -20,7 +20,7 @@ use self::{
     commit_ivk::{CommitIvkChip, CommitIvkConfig},
     gadget::{
         add_chip::{AddChip, AddConfig},
-        assign_free_advice,
+        assign_free_advice, assign_advice_from_instance,
     },
     note_commit::{NoteCommitChip, NoteCommitConfig},
 };
@@ -100,7 +100,6 @@ pub struct Config {
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {
     // A
-    pub(crate) nft: Value<NoteValue>,
     pub(crate) path: Value<[MerkleHashOrchard; MERKLE_DEPTH_ORCHARD]>,
     pub(crate) pos: Value<u32>,
     pub(crate) g_d_a: Value<NonIdentityPallasPoint>,
@@ -193,7 +192,7 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 [
                     (
                         "Either a = b + c, or a = c = 0",
-                        (d1_a.clone() - d1_b.clone() - d1_c.clone()) * (d1_a.clone() + d1_c.clone()),
+                        (d1_a.clone() - d1_b.clone() - d1_c.clone()) * (d1_a.clone() + d1_c.clone() + b_d1.clone() - d1_b.clone()),
                     ),
                     (
                         "Either d1_a = 0, or root = anchor",
@@ -391,14 +390,13 @@ impl plonk::Circuit<pallas::Base> for Circuit {
         // Construct the ECC chip.
         let ecc_chip = config.ecc_chip();
 
-        // Witness nft
-        let nft = assign_free_advice(
-            layouter.namespace(|| "witness nft"),
-            config.advices[0],
-            self.nft,
+        // Witness nft from instance column
+        let nft = assign_advice_from_instance(
+            layouter.namespace(|| "witness pub nft"),
+            config.primary,
+            NFT,
+            config.advices[0]
         )?;
-        // Constrain nft to equal public input
-        layouter.constrain_instance(nft.cell(), config.primary, NFT)?;
 
         // Witness psi_a
         let psi_a = assign_free_advice(
@@ -525,8 +523,6 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             &cm_a,
             nk.clone(),
         )?;
-        // Constrain nf_old to equal public input
-        //layouter.constrain_instance(nf_a.inner().cell(), config.primary, NF_OLD)?;
 
         // Spend authority (https://p.z.cash/ZKS:action-spend-authority)
         let rk = {
@@ -543,9 +539,6 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             // [alpha] SpendAuthG + ak_P
             let rk = alpha_commitment.add(layouter.namespace(|| "rk"), &ak_P)?;
 
-            // Constrain rk to equal public input
-            //layouter.constrain_instance(rk.inner().x().cell(), config.primary, RK_X)?;
-            //layouter.constrain_instance(rk.inner().y().cell(), config.primary, RK_Y)?;
             rk
         };
 
@@ -621,8 +614,6 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 rcm_a,
             )?;
 
-            // Constrain derived cm_old to equal witnessed cm_old
-            //derived_cm_a.constrain_equal(layouter.namespace(|| "cm_old equality"), &cm_a)?;
             derived_cm_a
         };
 
@@ -680,8 +671,6 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             sc_b.clone(),
             rcm_b,
         )?;
-        // Constrain cmx to equal public input
-        //layouter.constrain_instance(cm_b.inner().cell(), config.primary, CMB)?;
         
         // note C commitment integrity (https://p.z.cash/ZKS:action-cmx-new-integrity?partial).
 
@@ -1076,7 +1065,6 @@ mod tests {
 
         (
             Circuit {
-                nft: Value::known(NoteValue::from_raw(0)),
                 path: Value::known(path.auth_path()),
                 pos: Value::known(path.position()),
                 g_d_a: Value::known(sender_address.g_d()),

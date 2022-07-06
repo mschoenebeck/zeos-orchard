@@ -788,7 +788,7 @@ impl DecomposeI {
         lookup_config: &LookupRangeCheckConfig<pallas::Base, 10>,
         chip: SinsemillaChip<OrchardHashDomains, OrchardCommitDomains, OrchardFixedBases>,
         layouter: &mut impl Layouter<pallas::Base>,
-        nft: &AssignedCell<NoteValue, pallas::Base>,
+        nft: &AssignedCell<pallas::Base, pallas::Base>,
         sc: &AssignedCell<NoteValue, pallas::Base>,
     ) -> Result<
         (
@@ -799,10 +799,9 @@ impl DecomposeI {
         Error,
     > {
         let sc_val = sc.value().map(|v| pallas::Base::from(v.inner()));
-        let nft_val = nft.value().map(|v| pallas::Base::from(v.inner()));
 
         // i_0 will be boolean-constrained in the gate.
-        let i_0 = RangeConstrained::bitrange_of(nft_val.as_ref(), 0..1);
+        let i_0 = RangeConstrained::bitrange_of(nft.value(), 0..1);
 
         // Constrain i_1 to be 9 bits.
         let i_1 = RangeConstrained::witness_short(
@@ -1620,7 +1619,7 @@ impl NFTCanonicity {
     fn assign(
         &self,
         layouter: &mut impl Layouter<pallas::Base>,
-        nft: AssignedCell<NoteValue, pallas::Base>,
+        nft: AssignedCell<pallas::Base, pallas::Base>,
         i_0: AssignedCell<pallas::Base, pallas::Base>,
     ) -> Result<(), Error> {
         layouter.assign_region(
@@ -2068,7 +2067,7 @@ pub(in crate::circuit) mod gadgets {
         rho: AssignedCell<pallas::Base, pallas::Base>,
         psi: AssignedCell<pallas::Base, pallas::Base>,
         d2: AssignedCell<NoteValue, pallas::Base>,
-        nft: AssignedCell<NoteValue, pallas::Base>,
+        nft: AssignedCell<pallas::Base, pallas::Base>,
         sc: AssignedCell<NoteValue, pallas::Base>,
         rcm: ScalarFixed<pallas::Affine, EccChip<OrchardFixedBases>>,
     ) -> Result<Point<pallas::Affine, EccChip<OrchardFixedBases>>, Error> {
@@ -2753,16 +2752,15 @@ mod tests {
                     )?
                 };
 
-                // Witness a random boolean value nft
+                // Witness a random boolean value for nft
                 let nft = {
                     let mut rng = OsRng;
                     NoteValue::from_raw(rng.next_u64()%2)
-                    //Value::default()// from_raw(rng.next_u64()%2)
                 };
                 let nft_var = assign_free_advice(
                     layouter.namespace(|| "witness nft"),
                     note_commit_config.advices[0],
-                    Value::known(nft),
+                    Value::known(pallas::Base::from_u128(nft.inner() as u128)),
                 )?;
 
                 // Witness a random non-negative u64 smart contract account (sc)

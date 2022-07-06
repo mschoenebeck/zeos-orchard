@@ -189,7 +189,6 @@ impl ActionInfo {
                 },
             ),
             Circuit {
-                nft: Value::known(NoteValue::from_raw(0)),
                 path: Value::known(self.spend.merkle_path.auth_path()),
                 pos: Value::known(self.spend.merkle_path.position()),
                 g_d_a: Value::known(sender_address.g_d()),

@@ -22,7 +22,7 @@ use halo2_gadgets::{
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{AssignedCell, Chip, Layouter, Value},
-    plonk::{self, Advice, Assigned, Column},
+    plonk::{self, Advice, Assigned, Column, Instance},
 };
 
 pub(in crate::circuit) mod add_chip;
@@ -108,6 +108,24 @@ where
     layouter.assign_region(
         || "load private",
         |mut region| region.assign_advice(|| "load private", column, 0, || value),
+    )
+}
+
+/// Witnesses a value from the instance column
+/// 
+/// copies the value at 'row' of instance column 'instance' to advice column 'column
+/// at offset zero of a standalone region.
+/// [author: mschoenebeck]
+pub(in crate::circuit) fn assign_advice_from_instance<F: Field>(
+    mut layouter: impl Layouter<F>,
+    instance: Column<Instance>,
+    row: usize,
+    column: Column<Advice>,
+) -> Result<AssignedCell<F, F>, plonk::Error>
+{
+    layouter.assign_region(
+        || "load from public",
+        |mut region| region.assign_advice_from_instance(|| "load private", instance, row, column, 0),
     )
 }
 
