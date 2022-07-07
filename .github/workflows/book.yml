@@ -16,6 +16,13 @@ jobs:
         with:
           mdbook-version: '0.4.5'
 
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+
       - name: Install mdbook-katex
         uses: actions-rs/cargo@v1
         with:
