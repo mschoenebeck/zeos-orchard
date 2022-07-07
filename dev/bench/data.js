@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657211846948,
+  "lastUpdate": 1657211950738,
   "repoUrl": "https://github.com/mschoenebeck/zeos-orchard",
   "entries": {
     "Orchard Benchmarks": [
@@ -1907,6 +1907,54 @@ window.BENCHMARK_DATA = {
             "name": "proving/bundle/4",
             "value": 11326407870,
             "range": "± 148677181",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2f90751b2fe1f8211b01951d543654c4660da96d",
+          "message": "Update book.yml",
+          "timestamp": "2022-07-08T00:26:09+08:00",
+          "tree_id": "c6f38941abf07cc290e36fb300b6030357797e1e",
+          "url": "https://github.com/mschoenebeck/zeos-orchard/commit/2f90751b2fe1f8211b01951d543654c4660da96d"
+        },
+        "date": 1657211947995,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "proving/bundle/1",
+            "value": 5435946827,
+            "range": "± 161164600",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/2",
+            "value": 5254547500,
+            "range": "± 69351727",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/3",
+            "value": 7835899251,
+            "range": "± 161899198",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/4",
+            "value": 10218759404,
+            "range": "± 456867399",
             "unit": "ns/iter"
           }
         ]
