@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657212691265,
+  "lastUpdate": 1657213009606,
   "repoUrl": "https://github.com/mschoenebeck/zeos-orchard",
   "entries": {
     "Orchard Benchmarks": [
@@ -2099,6 +2099,54 @@ window.BENCHMARK_DATA = {
             "name": "proving/bundle/4",
             "value": 11104753634,
             "range": "± 22268426",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "matthias.schoenebeck@gmail.com",
+            "name": "mschoenebeck",
+            "username": "mschoenebeck"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a665bfd5155b7f2b5b397d9bf18fe15cc42b6e58",
+          "message": "Update rust-toolchain",
+          "timestamp": "2022-07-08T00:45:26+08:00",
+          "tree_id": "e742640e4cdb88dd172817bd7373c8c36619852d",
+          "url": "https://github.com/mschoenebeck/zeos-orchard/commit/a665bfd5155b7f2b5b397d9bf18fe15cc42b6e58"
+        },
+        "date": 1657213008512,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "proving/bundle/1",
+            "value": 4736253020,
+            "range": "± 149657375",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/2",
+            "value": 4715825128,
+            "range": "± 17939412",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/3",
+            "value": 6753715974,
+            "range": "± 16633818",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "proving/bundle/4",
+            "value": 8795108510,
+            "range": "± 19225705",
             "unit": "ns/iter"
           }
         ]
