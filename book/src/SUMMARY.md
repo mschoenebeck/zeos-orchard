@@ -1,6 +1,6 @@
-# The Orchard Book
+# The ZEOS Book
 
-[Orchard](README.md)
+[ZEOS](README.md)
 - [Concepts](concepts.md)
   - [Preliminaries](concepts/preliminaries.md)
 - [User Documentation](user.md)
