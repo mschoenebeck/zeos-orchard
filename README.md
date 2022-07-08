@@ -1,4 +1,4 @@
-# ZEOS <a href="https://zeos.one"><img src="https://zeos.one/assets/img/icons/zeos_black.svg" alt="zeos.one" height="20"/></a>
+# ZEOS <a href="https://zeos.one"><img src="https://zeos.one/assets/img/icons/zeos_black.svg" alt="zeos.one" height="32"/></a>
 
 Requires Rust 1.56.1+.
 
