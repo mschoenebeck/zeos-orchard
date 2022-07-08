@@ -10,7 +10,7 @@ $$\DiversifiedTransmitBaseRepr \bconcat
   \DiversifiedTransmitPublicRepr \bconcat
   \ItoLEBSP{64}(\mathsf{v}) \bconcat
   \ItoLEBSP{\BaseLength{Orchard}}(\rho) \bconcat
-  \ItoLEBSP{\BaseLength{Orchard}}(\psi),$$
+  \ItoLEBSP{\BaseLength{Orchard}}(\psi)$$
 
 where:
 - $\DiversifiedTransmitBaseRepr, \DiversifiedTransmitPublicRepr$ are representations of
