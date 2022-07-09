@@ -1,5 +1,5 @@
 [book]
-authors = ["Matthias Schoenebeck", "Jack Grigg"]
+authors = ["Matthias Schoenebeck"]
 language = "en"
 multilingual = false
 src = "src"
