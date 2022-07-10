@@ -211,6 +211,8 @@ impl ActionInfo {
                 rho_b: Value::known(nf_a),
                 psi_b: Value::known(note.rseed().psi(&note.rho())),
                 rcm_b: Value::known(note.rseed().rcm(&note.rho())),
+                g_d_c: Value::known(sender_address.g_d()), // TODO
+                pk_d_c: Value::known(*sender_address.pk_d()), // TODO
                 d1_c: Value::known(note.d1()), // TODO
                 psi_c: Value::known(note.rseed().psi(&note.rho())), // TODO
                 rcm_c: Value::known(note.rseed().rcm(&note.rho())), // TODO

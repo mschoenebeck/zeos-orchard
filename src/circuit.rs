@@ -74,8 +74,9 @@ const NFT: usize = 4;
 const B_D1: usize = 5;
 const B_D2: usize = 6;
 const B_SC: usize = 7;
-const CMB: usize = 8;
-const CMC: usize = 9;
+const C_D1: usize = 8;
+const CMB: usize = 9;
+const CMC: usize = 10;
 
 /// Configuration needed to use the ZEOS Action circuit.
 #[derive(Clone, Debug)]
@@ -124,6 +125,8 @@ pub struct Circuit {
     pub(crate) psi_b: Value<pallas::Base>,
     pub(crate) rcm_b: Value<NoteCommitTrapdoor>,
     // C
+    pub(crate) g_d_c: Value<NonIdentityPallasPoint>,
+    pub(crate) pk_d_c: Value<DiversifiedTransmissionKey>,
     pub(crate) d1_c: Value<NoteValue>,
     pub(crate) psi_c: Value<pallas::Base>,
     pub(crate) rcm_c: Value<NoteCommitTrapdoor>,
@@ -183,6 +186,7 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             let nft             = meta.query_advice(advices[4], Rotation(2));
             let cmc             = meta.query_advice(advices[5], Rotation(2));
             let cm_c            = meta.query_advice(advices[6], Rotation(2));
+            let c_d1            = meta.query_advice(advices[7], Rotation(2));
 
             //let one             = Expression::Constant(pallas::Base::one());
             //let zero            = Expression::Constant(pallas::Base::zero());
@@ -192,7 +196,7 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 [
                     (
                         "Either a = b + c, or a = c = 0",
-                        (d1_a.clone() - d1_b.clone() - d1_c.clone()) * (d1_a.clone() + d1_c.clone() + b_d1.clone() - d1_b.clone()),
+                        (d1_a.clone() - d1_b.clone() - d1_c.clone()) * (d1_a.clone() + d1_c.clone()),
                     ),
                     (
                         "Either d1_a = 0, or root = anchor",
@@ -243,8 +247,12 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                         nft * d1_c.clone(),
                     ),
                     (
-                        "Either d1_c = 0, or cmc = cm_c",
-                        d1_c * (cmc - cm_c),
+                        "Either c_d1 = 0, or c_d1 = d1_c",
+                        c_d1.clone() * (c_d1 - d1_c),
+                    ),
+                    (
+                        "Either cmc = 0, or cmc = cm_c",
+                        cmc.clone() * (cmc - cm_c),
                     ),
                 ],
             )
@@ -674,6 +682,26 @@ impl plonk::Circuit<pallas::Base> for Circuit {
         
         // note C commitment integrity (https://p.z.cash/ZKS:action-cmx-new-integrity?partial).
 
+        // Witness g_d_c
+        let g_d_c = {
+            let g_d_c = self.g_d_c.map(|g_d_c| g_d_c.to_affine());
+            NonIdentityPoint::new(
+                ecc_chip.clone(),
+                layouter.namespace(|| "witness g_d_c_star"),
+                g_d_c,
+            )?
+        };
+
+        // Witness pk_d_c
+        let pk_d_c = {
+            let pk_d_c = self.pk_d_c.map(|pk_d_c| pk_d_c.inner().to_affine());
+            NonIdentityPoint::new(
+                ecc_chip.clone(),
+                layouter.namespace(|| "witness pk_d_c"),
+                pk_d_c,
+            )?
+        };
+
         // Witness psi_c
         let psi_c = assign_free_advice(
             layouter.namespace(|| "witness psi_c"),
@@ -696,8 +724,8 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             config.sinsemilla_chip_1(),
             config.ecc_chip(),
             config.note_commit_chip_c(),
-            g_d_a.inner(),
-            pk_d_a.inner(),
+            g_d_c.inner(),
+            pk_d_c.inner(),
             d1_c.clone(),
             nf_a.inner().clone(),
             psi_c,
@@ -810,6 +838,14 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                 )?;
                 cm_c.extract_p().inner().copy_advice(|| "cm_c", &mut region, config.advices[6], 2)?;
 
+                region.assign_advice_from_instance(
+                    || "pub input c_d1",
+                    config.primary,
+                    C_D1,
+                    config.advices[7],
+                    2,
+                )?;
+
                 config.q_orchard.enable(&mut region, 0)
             },
         )?;
@@ -828,6 +864,7 @@ pub struct Instance {
     pub(crate) b_d1: NoteValue,
     pub(crate) b_d2: NoteValue,
     pub(crate) b_sc: NoteValue,
+    pub(crate) c_d1: NoteValue,
     pub(crate) cmb: ExtractedNoteCommitment,
     pub(crate) cmc: ExtractedNoteCommitment,
 }
@@ -848,6 +885,7 @@ impl Instance {
         b_d1: NoteValue,
         b_d2: NoteValue,
         b_sc: NoteValue,
+        c_d1: NoteValue,
         cmb: ExtractedNoteCommitment,
         cmc: ExtractedNoteCommitment,
     ) -> Self {
@@ -859,13 +897,14 @@ impl Instance {
             b_d1,
             b_d2,
             b_sc,
+            c_d1,
             cmb,
             cmc,
         }
     }
 
-    fn to_halo2_instance(&self) -> [[vesta::Scalar; 10]; 1] {
-        let mut instance = [vesta::Scalar::zero(); 10];
+    fn to_halo2_instance(&self) -> [[vesta::Scalar; 11]; 1] {
+        let mut instance = [vesta::Scalar::zero(); 11];
 
         instance[ANCHOR] = self.anchor.inner();
         instance[NF] = self.nf.0;
@@ -884,6 +923,7 @@ impl Instance {
         instance[B_D1] = vesta::Scalar::from(self.b_d1.inner());
         instance[B_D2] = vesta::Scalar::from(self.b_d2.inner());
         instance[B_SC] = vesta::Scalar::from(self.b_sc.inner());
+        instance[C_D1] = vesta::Scalar::from(self.c_d1.inner());
 
         [instance]
     }
@@ -1087,6 +1127,8 @@ mod tests {
                 rho_b: Value::known(nf_a),
                 psi_b: Value::known(note_b.rseed().psi(&note_b.rho())),
                 rcm_b: Value::known(note_b.rseed().rcm(&note_b.rho())),
+                g_d_c: Value::known(sender_address.g_d()),
+                pk_d_c: Value::known(*sender_address.pk_d()),
                 d1_c: Value::known(note_c.d1()),
                 psi_c: Value::known(note_c.rseed().psi(&note_c.rho())),
                 rcm_c: Value::known(note_c.rseed().rcm(&note_c.rho())),
@@ -1099,6 +1141,7 @@ mod tests {
                 b_d1: NoteValue::from_raw(0),
                 b_d2: NoteValue::from_raw(0),
                 b_sc: NoteValue::from_raw(0),
+                c_d1: NoteValue::from_raw(0),
                 cmb: note_b.commitment().into(),
                 cmc: note_c.commitment().into(),
             },
@@ -1179,6 +1222,7 @@ mod tests {
             w.write_all(&instance.b_d1.to_bytes())?;
             w.write_all(&instance.b_d2.to_bytes())?;
             w.write_all(&instance.b_sc.to_bytes())?;
+            w.write_all(&instance.c_d1.to_bytes())?;
             w.write_all(&instance.cmb.to_bytes())?;
             w.write_all(&instance.cmc.to_bytes())?;
 
@@ -1214,10 +1258,11 @@ mod tests {
             let b_d1 = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
             let b_d2 = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
             let b_sc = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
+            let c_d1 = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
             let cmb = crate::note::ExtractedNoteCommitment::from_bytes(&read_32_bytes(&mut r)).unwrap();
             let cmc = crate::note::ExtractedNoteCommitment::from_bytes(&read_32_bytes(&mut r)).unwrap();
             
-            let instance = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, cmb, cmc);
+            let instance = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc);
 
             let mut proof_bytes = vec![];
             r.read_to_end(&mut proof_bytes)?;

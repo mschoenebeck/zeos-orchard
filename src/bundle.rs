@@ -37,6 +37,7 @@ impl<T> Action<T> {
             b_d1: NoteValue::from_raw(0), // TODO
             b_d2: NoteValue::from_raw(0), // TODO
             b_sc: NoteValue::from_raw(0), // TODO
+            c_d1: NoteValue::from_raw(0), // TODO
             cmb: *self.cmx(), // TODO
             cmc: *self.cmx(), // TODO
         }
