@@ -8,17 +8,23 @@ The input to $\SinsemillaCommit$ is:
 
 $$\DiversifiedTransmitBaseRepr \bconcat
   \DiversifiedTransmitPublicRepr \bconcat
-  \ItoLEBSP{64}(\mathsf{v}) \bconcat
+  \ItoLEBSP{64}(\mathsf{d1}) \bconcat
   \ItoLEBSP{\BaseLength{Orchard}}(\rho) \bconcat
-  \ItoLEBSP{\BaseLength{Orchard}}(\psi),$$
+  \ItoLEBSP{\BaseLength{Orchard}}(\psi) \bconcat
+  \ItoLEBSP{64}(\mathsf{d2}) \bconcat
+  \ItoLEBSP{1}(\mathsf{nft}) \bconcat
+  \ItoLEBSP{64}(\mathsf{sc}),$$
 
 where:
 - $\DiversifiedTransmitBaseRepr, \DiversifiedTransmitPublicRepr$ are representations of
   Pallas curve points, with $255$ bits used for the $x$-coordinate and $1$ bit used for
   the $y$-coordinate.
 - $\rho, \psi$ are Pallas base field elements.
-- $\mathsf{v}$ is a $64$-bit value.
+- $\mathsf{d1}$ is a $64$-bit value.
 - $\BaseLength{Orchard} = 255.$
+- $\mathsf{d2}$ is a $64$-bit value.
+- $\mathsf{nft}$ is a $1$-bit value.
+- $\mathsf{sc}$ is a $64$-bit value.
 
 Sinsemilla operates on multiples of 10 bits, so we start by decomposing the message into
 chunks:
@@ -35,7 +41,7 @@ $$
     (\text{bits 4..=253 of } x(\mathsf{pk_d})) \bconcat
     (\text{bit 254 of } x(\mathsf{pk_d})) \bconcat
     (ỹ \text{ bit of } \mathsf{pk_d}) \\
-\ItoLEBSP{64}(v) &= d_2 \bconcat d_3 \bconcat e_0 \\
+\ItoLEBSP{64}(d1) &= d_2 \bconcat d_3 \bconcat e_0 \\
  &= (\text{bits 0..=7 of } v) \bconcat
     (\text{bits 8..=57 of } v) \bconcat
     (\text{bits 58..=63 of } v) \\
@@ -48,6 +54,15 @@ $$
     (\text{bits 9..=248 of } \psi) \bconcat
     (\text{bits 249..=253 of } \psi) \bconcat
     (\text{bit 254 of } \psi) \\
+\ItoLEBSP{64}(d2) &= h_2 \bconcat h_3 \\
+ &= (\text{bits 0..=3 of } d2) \bconcat
+    (\text{bits 4..=63 of } d2) \\
+\ItoLEBSP{1}(nft) &= i_0 \\
+ &= (\text{bit 0 of } nft) \\
+\ItoLEBSP{64}(sc) &= i_1 \bconcat i_2 \bconcat j_0 \bconcat j_1 \\
+ &= (\text{bits 0..=8 of } sc) \bconcat
+    (\text{bits 9..=58 of } sc) \bconcat
+    (\text{bits 59..=63 of } sc) \\
 \end{aligned}
 $$
 
@@ -64,18 +79,26 @@ $$
  10 & e = e_0 \bconcat e_1 \\
 250 & f \\
 250 & g = g_0 \bconcat g_1 \bconcat g_2 \\
- 10 & h = h_0 \bconcat h_1 \bconcat h_2 \\\hline
+ 70 & h = h_0 \bconcat h_1 \bconcat h_2 \bconcat h_3 \\
+ 60 & i = i_0 \bconcat i_1 \bconcat i_2 \\
+ 10 & j = j_0 \bconcat j_1 \\\hline
 \end{array}
 $$
 
-where $h_2$ is 4 zero bits (corresponding to the padding applied by the Sinsemilla
+where $j_1$ is 5 zero bits (corresponding to the padding applied by the Sinsemilla
 [$\mathsf{pad}$ function](https://zips.z.cash/protocol/protocol.pdf#concretesinsemillahash)).
 
 Each message piece is constrained by $\SinsemillaHash$ to its stated length. Additionally:
 - $\DiversifiedTransmitBase$ and $\DiversifiedTransmitPublic$ are witnessed and checked
   to be valid elliptic curve points.
-- $\mathsf{v}$ is witnessed as a field element, but its decomposition is sufficient to
+- $\mathsf{d1}$ is witnessed as a field element, but its decomposition is sufficient to
   constrain it to be a 64-bit value.
+- $\mathsf{d2}$ is witnessed as a field element, but its decomposition is sufficient to
+  constrain it to be a 64-bit value.
+- $\mathsf{sc}$ is witnessed as a field element, but its decomposition is sufficient to
+  constrain it to be a 64-bit value.
+- $\mathsf{nft}$ is witnessed as a field element, but its decomposition is sufficient to
+  constrain it to be a 1-bit value.
 - $\rho$ and $\psi$ are witnessed as field elements, so we know they are canonical.
 
 However, we need additional constraints to enforce that:
@@ -159,7 +182,7 @@ $$
 Outside this gate, we have constrained:
 - $\ShortLookupRangeCheck{d_2, 8}$
 - $d_3$ is equality-constrained to $z_{d,1}$, where the latter is the index-1 running sum
-  output of $\SinsemillaHash(d),$ constrained by the hash to be $50$ bits.
+  output of $\SinsemillaHash(d)$, constrained by the hash to be $50$ bits.
 
 ### $e = e_0 \bconcat e_1$
 $e$ has been constrained to be $10$ bits by the $\SinsemillaHash$.
@@ -212,10 +235,10 @@ $$
 Outside this gate, we have constrained:
 - $\ShortLookupRangeCheck{g_1, 9}$
 - $g_2$ is equality-constrained to $z_{g,1}$, where the latter is the index-1 running sum
-  output of $\SinsemillaHash(g),$ constrained by the hash to be 240 bits.
+  output of $\SinsemillaHash(g)$, constrained by the hash to be 240 bits.
 
-### $h = h_0 \bconcat h_1 \bconcat h_2$ 
-$h$ has been constrained to be $10$ bits by the $\SinsemillaHash$.
+### $h = h_0 \bconcat h_1 \bconcat h_2 \bconcat h_3$
+$h$ has been constrained to be $70$ bits by the $\SinsemillaHash$.
 
 #### Region layout
 $$
@@ -223,6 +246,7 @@ $$
 \hline
  A_6 & A_7 & A_8 & q_{\NoteCommit,h} \\\hline
   h  & h_0 & h_1 &       1           \\\hline
+     & h_2 & h_3 &       0           \\\hline
 \end{array}
 $$
 
@@ -232,12 +256,69 @@ $$
 \hline
 \text{Degree} & \text{Constraint}                           \\\hline
       3       & q_{\NoteCommit,h} \cdot \BoolCheck{h_1} = 0 \\\hline
-2 & q_{\NoteCommit,h} \cdot (h - (h_0 + h_1 \cdot 2^5)) = 0 \\\hline
+2 & q_{\NoteCommit,h} \cdot (h - (h_0 + h_1 \cdot 2^5 + h_2 \cdot 2^6 + h_3 \cdot 2^{10})) = 0 \\\hline
 \end{array}
 $$
 
 Outside this gate, we have constrained:
 - $\ShortLookupRangeCheck{h_0, 5}$
+- $\ShortLookupRangeCheck{h_2, 4}$
+- $\ShortLookupRangeCheck{h_3, 60}$
+- $h_3$ is equality-constrained to $z_{h,1}$, where the latter is the index-1 running sum
+  output of $\SinsemillaHash(h)$, constrained by the hash to be 60 bits.
+
+### $i = i_0 \bconcat i_1 \bconcat i_2$
+$i$ has been constrained to be $60$ bits by the $\SinsemillaHash$.
+
+#### Region layout
+$$
+\begin{array}{|c|c|c|}
+\hline
+ A_6 & A_7 & q_{\NoteCommit,i} \\\hline
+  i  & i_0 &       1           \\\hline
+ i_1 & i_2 &       0           \\\hline
+\end{array}
+$$
+
+#### Constraints
+$$
+\begin{array}{|c|l|}
+\hline
+\text{Degree} & \text{Constraint}                           \\\hline
+      3       & q_{\NoteCommit,i} \cdot \BoolCheck{i_0} = 0 \\\hline
+2 & q_{\NoteCommit,i} \cdot (i - (i_0 + i_1 \cdot 2 + i_2 \cdot 2^{10})) = 0 \\\hline
+\end{array}
+$$
+
+Outside this gate, we have constrained:
+- $\ShortLookupRangeCheck{i_1, 9}$
+- $\ShortLookupRangeCheck{i_2, 50}$
+- $i_2$ is equality-constrained to $z_{i,1}$, where the latter is the index-1 running sum
+  output of $\SinsemillaHash(i)$, constrained by the hash to be 50 bits.
+
+### $j = j_0 \bconcat j_1$
+$j$ has been constrained to be $10$ bits by the $\SinsemillaHash$.
+
+#### Region layout
+$$
+\begin{array}{|c|c|c|}
+\hline
+ A_6 & A_7 & q_{\NoteCommit,i} \\\hline
+  j  & j_0 &       1           \\\hline
+\end{array}
+$$
+
+#### Constraints
+$$
+\begin{array}{|c|l|}
+\hline
+\text{Degree} & \text{Constraint}         \\\hline
+2 & q_{\NoteCommit,j} \cdot (j - j_0) = 0 \\\hline
+\end{array}
+$$
+
+Outside this gate, we have constrained:
+- $\ShortLookupRangeCheck{j_0, 5}$
 
 ## Field element checks
 
@@ -370,14 +451,14 @@ $$
 \end{array}
 $$
 
-### $\mathsf{v} = d_2 + 2^8 \cdot d_3 + 2^{58} \cdot e_0$
+### $\mathsf{d1} = d_2 + 2^8 \cdot d_3 + 2^{58} \cdot e_0$
 
 #### Region layout
 $$
 \begin{array}{|c|c|c|c|c|}
 \hline
-  A_6   & A_7 &  A_8  &   A_9   & q_{\NoteCommit,value} \\\hline
- value  & d_2 &  d_3  &   e_0   &           1           \\\hline
+  A_6   & A_7 &  A_8  &   A_9   & q_{\NoteCommit,d1} \\\hline
+  d1    & d_2 &  d_3  &   e_0   &           1        \\\hline
 \end{array}
 $$
 
@@ -386,7 +467,7 @@ $$
 \begin{array}{|c|l|}
 \hline
 \text{Degree} & \text{Constraint} \\\hline
-2 & q_{\NoteCommit,value} \cdot (d_2 + d_3 \cdot 2^8 + e_0 \cdot 2^{58} - \mathsf{value}) = 0 \\\hline
+2 & q_{\NoteCommit,d1} \cdot (d_2 + d_3 \cdot 2^8 + e_0 \cdot 2^{58} - \mathsf{d1}) = 0 \\\hline
 \end{array}
 $$
 
@@ -475,6 +556,66 @@ $$
 3 & q_{\NoteCommit,\psi} \cdot h_1 \cdot z_{g,13} = 0 \\\hline
 2 & q_{\NoteCommit,\psi} \cdot (g_1 + g_2 \cdot 2^9 + 2^{130} - t_\mathbb{P} - {g_1}{g_2}') = 0 \\\hline
 3 & q_{\NoteCommit,\psi} \cdot h_1 \cdot z_{{g_1}{g_2}',13} = 0 \\\hline
+\end{array}
+$$
+
+### $\mathsf{d2} = h_2 + 2^4 \cdot h_3$
+
+#### Region layout
+$$
+\begin{array}{|c|c|c|c|}
+\hline
+  A_6   & A_7 &  A_8  & q_{\NoteCommit,d1} \\\hline
+  d2    & h_2 &  h_3  &           1        \\\hline
+\end{array}
+$$
+
+#### Constraints
+$$
+\begin{array}{|c|l|}
+\hline
+\text{Degree} & \text{Constraint} \\\hline
+2 & q_{\NoteCommit,d2} \cdot (h_2 + h_3 \cdot 2^4 - \mathsf{d2}) = 0 \\\hline
+\end{array}
+$$
+
+### $\mathsf{nft} = i_0$
+
+#### Region layout
+$$
+\begin{array}{|c|c|c|c|}
+\hline
+  A_6   & A_7 & q_{\NoteCommit,d1} \\\hline
+  nft   & i_0 &           1        \\\hline
+\end{array}
+$$
+
+#### Constraints
+$$
+\begin{array}{|c|l|}
+\hline
+\text{Degree} & \text{Constraint} \\\hline
+2 & q_{\NoteCommit,nft} \cdot (i_0 - \mathsf{nft}) = 0 \\\hline
+\end{array}
+$$
+
+### $\mathsf{sc} = i_1 + 2^9 \cdot i_2 + 2^{59} \cdot j_0$
+
+#### Region layout
+$$
+\begin{array}{|c|c|c|c|c|}
+\hline
+  A_6   & A_7 &  A_8  &   A_9   & q_{\NoteCommit,sc} \\\hline
+  sc    & i_1 &  i_2  &   j_0   &           1        \\\hline
+\end{array}
+$$
+
+#### Constraints
+$$
+\begin{array}{|c|l|}
+\hline
+\text{Degree} & \text{Constraint} \\\hline
+2 & q_{\NoteCommit,sc} \cdot (i_1 + i_2 \cdot 2^9 + j_0 \cdot 2^{59} - \mathsf{sc}) = 0 \\\hline
 \end{array}
 $$
 
