@@ -164,15 +164,24 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-<h1><a class="header" href="#signatures" id="signatures">Signatures</a></h1>
-<p>Orchard signatures are an instantiation of RedDSA with a cofactor of 1.</p>
-<p>TODO:</p>
+<h1><a class="header" href="#notes-utxos" id="notes-utxos">Notes (UTXOs)</a></h1>
+<p>ZEOS notes are private representations of unspent transaction outputs (UTXOs). The ZEOS protocol supports three different kinds of notes:</p>
 <ul>
-<li>Should it be possible to sign partial transactions?
-<ul>
-<li>If we're going to merge down all the signatures into a single one, and also want this, we need to ensure there's a feasible MPC.</li>
+<li>Fungible Token (FT)</li>
+<li>Non-Fungible Token (NFT)</li>
+<li>Authentication Token (AT)</li>
 </ul>
-</li>
+<p>All three note types share the same data structure:</p>
+<ul>
+<li>header [64 bit]</li>
+<li>address [???]</li>
+<li>d1 [64 bit]</li>
+<li>d2 [64 bit]</li>
+<li>sc [64 bit]</li>
+<li>nft [1 bit]</li>
+<li>rho [32 byte]</li>
+<li>rseed [???]</li>
+<li>memo [512 byte]</li>
 </ul>
 
                     </main>
