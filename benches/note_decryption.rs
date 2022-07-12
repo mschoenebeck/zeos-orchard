@@ -2,12 +2,14 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use orchard::{
     builder::Builder,
     bundle::Flags,
-    circuit::ProvingKey,
+    //circuit::ProvingKey,
+    circuit::{Circuit, K},
     keys::{FullViewingKey, Scope, SpendingKey},
     note_encryption::{CompactAction, OrchardDomain},
     value::NoteValue,
     Anchor, Bundle,
 };
+use rustzeos::halo2::ProvingKey;
 use rand::rngs::OsRng;
 use zcash_note_encryption::{batch, try_compact_note_decryption, try_note_decryption};
 
@@ -16,7 +18,7 @@ use pprof::criterion::{Output, PProfProfiler};
 
 fn bench_note_decryption(c: &mut Criterion) {
     let rng = OsRng;
-    let pk = ProvingKey::build();
+    let pk = ProvingKey::build(Circuit::default(), K);
 
     let fvk = FullViewingKey::from(&SpendingKey::from_bytes([7; 32]).unwrap());
     let valid_ivk = fvk.to_ivk(Scope::External);

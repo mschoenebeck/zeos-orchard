@@ -9,11 +9,13 @@ use pprof::criterion::{Output, PProfProfiler};
 use orchard::{
     builder::Builder,
     bundle::Flags,
-    circuit::{ProvingKey, VerifyingKey},
+    //circuit::{ProvingKey, VerifyingKey},
+    circuit::{Circuit, K},
     keys::{FullViewingKey, Scope, SpendingKey},
     value::NoteValue,
     Anchor, Bundle,
 };
+use rustzeos::halo2::{ProvingKey, VerifyingKey};
 use rand::rngs::OsRng;
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -22,8 +24,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     let sk = SpendingKey::from_bytes([7; 32]).unwrap();
     let recipient = FullViewingKey::from(&sk).address_at(0u32, Scope::External);
 
-    let vk = VerifyingKey::build();
-    let pk = ProvingKey::build();
+    let vk = VerifyingKey::build(Circuit::default(), K);
+    let pk = ProvingKey::build(Circuit::default(), K);
 
     let create_bundle = |num_recipients| {
         let mut builder = Builder::new(

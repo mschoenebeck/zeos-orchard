@@ -13,7 +13,7 @@ use crate::{
     action::Action,
     address::Address,
     bundle::{Authorization, Authorized, Bundle, Flags},
-    circuit::{Circuit, Instance, Proof, ProvingKey},
+    circuit::{Circuit, Instance},// Proof, ProvingKey},
     keys::{
         FullViewingKey, OutgoingViewingKey, Scope, SpendAuthorizingKey, SpendValidatingKey,
         SpendingKey,
@@ -24,6 +24,7 @@ use crate::{
     tree::{Anchor, MerklePath},
     value::{self, NoteValue, OverflowError, ValueCommitTrapdoor, ValueCommitment, ValueSum},
 };
+use rustzeos::halo2::{Proof, ProvingKey};
 
 const MIN_ACTIONS: usize = 2;
 
@@ -662,13 +663,15 @@ pub mod testing {
     use crate::{
         address::testing::arb_address,
         bundle::{Authorized, Bundle, Flags},
-        circuit::ProvingKey,
+        //circuit::ProvingKey,
+        circuit::{Circuit, K},
         keys::{testing::arb_spending_key, FullViewingKey, SpendAuthorizingKey, SpendingKey},
         note::testing::arb_note,
         tree::{Anchor, MerkleHashOrchard, MerklePath},
         value::{testing::arb_positive_note_value, NoteValue, MAX_NOTE_VALUE},
         Address, Note,
     };
+    use rustzeos::halo2::ProvingKey;
 
     use super::Builder;
 
@@ -709,7 +712,7 @@ pub mod testing {
                     .unwrap();
             }
 
-            let pk = ProvingKey::build();
+            let pk = ProvingKey::build(Circuit::default(), K);
             builder
                 .build(&mut self.rng)
                 .unwrap()
@@ -791,16 +794,18 @@ mod tests {
     use super::Builder;
     use crate::{
         bundle::{Authorized, Bundle, Flags},
-        circuit::ProvingKey,
+        //circuit::ProvingKey,
+        circuit::{Circuit, K},
         constants::MERKLE_DEPTH_ORCHARD,
         keys::{FullViewingKey, Scope, SpendingKey},
         tree::EMPTY_ROOTS,
         value::NoteValue,
     };
+    use rustzeos::halo2::ProvingKey;
 
     #[test]
     fn shielding_bundle() {
-        let pk = ProvingKey::build();
+        let pk = ProvingKey::build(Circuit::default(), K);
         let mut rng = OsRng;
 
         let sk = SpendingKey::random(&mut rng);

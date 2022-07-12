@@ -2,7 +2,8 @@ use incrementalmerkletree::{bridgetree::BridgeTree, Hashable, Tree};
 use orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
-    circuit::{ProvingKey, VerifyingKey},
+    //circuit::{ProvingKey, VerifyingKey},
+    circuit::{Circuit, K},
     keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
     note::ExtractedNoteCommitment,
     note_encryption::OrchardDomain,
@@ -12,6 +13,7 @@ use orchard::{
 };
 use rand::rngs::OsRng;
 use zcash_note_encryption::try_note_decryption;
+use rustzeos::halo2::{ProvingKey, VerifyingKey};
 
 fn verify_bundle(bundle: &Bundle<Authorized, i64>, vk: &VerifyingKey) {
     assert!(matches!(bundle.verify_proof(vk), Ok(())));
@@ -29,8 +31,8 @@ fn verify_bundle(bundle: &Bundle<Authorized, i64>, vk: &VerifyingKey) {
 #[test]
 fn bundle_chain() {
     let mut rng = OsRng;
-    let pk = ProvingKey::build();
-    let vk = VerifyingKey::build();
+    let pk = ProvingKey::build(Circuit::default(), K);
+    let vk = VerifyingKey::build(Circuit::default(), K);
 
     let sk = SpendingKey::from_bytes([0; 32]).unwrap();
     let fvk = FullViewingKey::from(&sk);

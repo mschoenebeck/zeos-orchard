@@ -16,6 +16,8 @@ use memuse::DynamicUsage;
 use pasta_curves::{arithmetic::CurveAffine, pallas, vesta};
 use rand::RngCore;
 
+use rustzeos::{halo2::{VerifyingKey, ProvingKey, Proof}};
+
 use self::{
     commit_ivk::{CommitIvkChip, CommitIvkConfig},
     gadget::{
@@ -63,7 +65,7 @@ pub mod gadget;
 mod note_commit;
 
 /// Size of the ZEOS circuit.
-const K: u32 = 11;
+pub const K: u32 = 11;
 
 // Absolute offsets for public inputs.
 const ANCHOR: usize = 0;
@@ -917,154 +919,24 @@ impl Instance {
 
         instance[RK_X] = *rk.x();
         instance[RK_Y] = *rk.y();
-        instance[CMB] = self.cmb.inner();
-        instance[CMC] = self.cmc.inner();
         instance[NFT] = vesta::Scalar::from(u64::from(self.nft));
         instance[B_D1] = vesta::Scalar::from(self.b_d1.inner());
         instance[B_D2] = vesta::Scalar::from(self.b_d2.inner());
         instance[B_SC] = vesta::Scalar::from(self.b_sc.inner());
         instance[C_D1] = vesta::Scalar::from(self.c_d1.inner());
+        instance[CMB] = self.cmb.inner();
+        instance[CMC] = self.cmc.inner();
 
         [instance]
     }
 }
 
-/// The verifying key for the Orchard Action circuit.
-#[derive(Debug)]
-pub struct VerifyingKey {
-    pub(crate) params: halo2_proofs::poly::commitment::Params<vesta::Affine>,
-    pub(crate) vk: plonk::VerifyingKey<vesta::Affine>,
-}
-
-impl VerifyingKey {
-    /// Builds the verifying key.
-    pub fn build() -> Self {
-        let params = halo2_proofs::poly::commitment::Params::new(K);
-        let circuit: Circuit = Default::default();
-
-        let vk = plonk::keygen_vk(&params, &circuit).unwrap();
-
-        VerifyingKey { params, vk }
-    }
-}
-
-/// The proving key for the Orchard Action circuit.
-#[derive(Debug)]
-pub struct ProvingKey {
-    params: halo2_proofs::poly::commitment::Params<vesta::Affine>,
-    pk: plonk::ProvingKey<vesta::Affine>,
-}
-
-impl ProvingKey {
-    /// Builds the proving key.
-    pub fn build() -> Self {
-        let params = halo2_proofs::poly::commitment::Params::new(K);
-        let circuit: Circuit = Default::default();
-
-        let vk = plonk::keygen_vk(&params, &circuit).unwrap();
-        let pk = plonk::keygen_pk(&params, vk, &circuit).unwrap();
-
-        ProvingKey { params, pk }
-    }
-}
-
-/// A proof of the validity of an Orchard [`Bundle`].
-///
-/// [`Bundle`]: crate::bundle::Bundle
-#[derive(Clone)]
-pub struct Proof(Vec<u8>);
-
-impl fmt::Debug for Proof {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            f.debug_tuple("Proof").field(&self.0).finish()
-        } else {
-            // By default, only show the proof length, not its contents.
-            f.debug_tuple("Proof")
-                .field(&format_args!("{} bytes", self.0.len()))
-                .finish()
-        }
-    }
-}
-
-impl AsRef<[u8]> for Proof {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl DynamicUsage for Proof {
-    fn dynamic_usage(&self) -> usize {
-        self.0.dynamic_usage()
-    }
-
-    fn dynamic_usage_bounds(&self) -> (usize, Option<usize>) {
-        self.0.dynamic_usage_bounds()
-    }
-}
-
-impl Proof {
-    /// Creates a proof for the given circuits and instances.
-    pub fn create(
-        pk: &ProvingKey,
-        circuits: &[Circuit],
-        instances: &[Instance],
-        mut rng: impl RngCore,
-    ) -> Result<Self, plonk::Error> {
-        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance()).collect();
-        let instances: Vec<Vec<_>> = instances
-            .iter()
-            .map(|i| i.iter().map(|c| &c[..]).collect())
-            .collect();
-        let instances: Vec<_> = instances.iter().map(|i| &i[..]).collect();
-
-        let mut transcript = Blake2bWrite::<_, vesta::Affine, _>::init(vec![]);
-        plonk::create_proof(
-            &pk.params,
-            &pk.pk,
-            circuits,
-            &instances,
-            &mut rng,
-            &mut transcript,
-        )?;
-        Ok(Proof(transcript.finalize()))
-    }
-
-    /// Verifies this proof with the given instances.
-    pub fn verify(&self, vk: &VerifyingKey, instances: &[Instance]) -> Result<(), plonk::Error> {
-        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance()).collect();
-        let instances: Vec<Vec<_>> = instances
-            .iter()
-            .map(|i| i.iter().map(|c| &c[..]).collect())
-            .collect();
-        let instances: Vec<_> = instances.iter().map(|i| &i[..]).collect();
-
-        let strategy = SingleVerifier::new(&vk.params);
-        let mut transcript = Blake2bRead::init(&self.0[..]);
-        plonk::verify_proof(&vk.params, &vk.vk, strategy, &instances, &mut transcript)
-    }
-
-    pub(crate) fn add_to_batch(
-        &self,
-        batch: &mut BatchVerifier<vesta::Affine>,
-        instances: Vec<Instance>,
-    ) {
-        let instances = instances
-            .iter()
-            .map(|i| {
-                i.to_halo2_instance()
-                    .into_iter()
-                    .map(|c| c.into_iter().collect())
-                    .collect()
-            })
-            .collect();
-
-        batch.add_proof(instances, self.0.clone());
-    }
-
-    /// Constructs a new Proof value.
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Proof(bytes)
+impl rustzeos::halo2::Instance for Instance{
+    fn to_halo2_instance_vec(&self) -> Vec<Vec<vesta::Scalar>> {
+        let instance = self.to_halo2_instance()[0].to_vec();
+        let mut instances = Vec::new();
+        instances.push(instance);
+        instances
     }
 }
 
@@ -1157,7 +1029,7 @@ mod tests {
             .map(|()| generate_circuit_instance(&mut rng))
             .unzip();
 
-        let vk = VerifyingKey::build();
+        let vk = VerifyingKey::build(Circuit::default(), K);
 /*
         // Test that the pinned verification key (representing the circuit)
         // is as expected.
@@ -1198,7 +1070,7 @@ mod tests {
             );
         }
 
-        let pk = ProvingKey::build();
+        let pk = ProvingKey::build(Circuit::default(), K);
         let proof = Proof::create(&pk, &circuits, &instances, &mut rng).unwrap();
         assert!(proof.verify(&vk, &instances).is_ok());
         //assert_eq!(proof.0.len(), expected_proof_size);
@@ -1208,7 +1080,7 @@ mod tests {
     fn serialized_proof_test_case() {
         use std::io::{Read, Write};
 
-        let vk = VerifyingKey::build();
+        let vk = VerifyingKey::build(Circuit::default(), K);
 
         fn write_test_case<W: Write>(
             mut w: W,
@@ -1279,7 +1151,7 @@ mod tests {
                 let (circuit, instance) = generate_circuit_instance(OsRng);
                 let instances = &[instance.clone()];
 
-                let pk = ProvingKey::build();
+                let pk = ProvingKey::build(Circuit::default(), K);
                 let proof = Proof::create(&pk, &[circuit], instances, &mut rng).unwrap();
                 assert!(proof.verify(&vk, instances).is_ok());
 

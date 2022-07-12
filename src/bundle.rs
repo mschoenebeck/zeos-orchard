@@ -16,7 +16,7 @@ use crate::{
     action::Action,
     address::Address,
     bundle::commitments::{hash_bundle_auth_data, hash_bundle_txid_data},
-    circuit::{Instance, Proof, VerifyingKey},
+    circuit::{Instance},// Proof, VerifyingKey},
     keys::{IncomingViewingKey, OutgoingViewingKey},
     note::Note,
     note_encryption::OrchardDomain,
@@ -24,6 +24,7 @@ use crate::{
     tree::Anchor,
     value::{ValueCommitTrapdoor, ValueCommitment, ValueSum, NoteValue},
 };
+use rustzeos::halo2::{Proof, VerifyingKey};
 
 impl<T> Action<T> {
     /// Prepares the public instance for this action, for creating and verifying the
@@ -490,11 +491,12 @@ pub mod testing {
     use proptest::prelude::*;
 
     use crate::{
-        circuit::Proof,
+        //circuit::Proof,
         primitives::redpallas::{self, testing::arb_binding_signing_key},
         value::{testing::arb_note_value_bounded, NoteValue, ValueSum, MAX_NOTE_VALUE},
         Anchor,
     };
+    use rustzeos::halo2::Proof;
 
     use super::{Action, Authorization, Authorized, Bundle, Flags};
 

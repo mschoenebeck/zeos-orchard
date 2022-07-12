@@ -5,9 +5,10 @@ use tracing::debug;
 
 use super::{Authorized, Bundle};
 use crate::{
-    circuit::VerifyingKey,
+    //circuit::VerifyingKey,
     primitives::redpallas::{self, Binding, SpendAuth},
 };
+use rustzeos::halo2::VerifyingKey;
 
 /// A signature within an authorized Orchard bundle.
 #[derive(Debug)]

@@ -1,7 +1,19 @@
-# Signatures
+# Notes (UTXOs)
 
-Orchard signatures are an instantiation of RedDSA with a cofactor of 1.
+ZEOS notes are private representations of unspent transaction outputs (UTXOs). The ZEOS protocol supports three different kinds of notes:
 
-TODO:
-- Should it be possible to sign partial transactions?
-  - If we're going to merge down all the signatures into a single one, and also want this, we need to ensure there's a feasible MPC.
+- Fungible Token (FT)
+- Non-Fungible Token (NFT)
+- Authentication Token (AT)
+
+All three note types share the same data structure:
+
+- header [64 bit]
+- address [???]
+- d1 [64 bit]
+- d2 [64 bit]
+- sc [64 bit]
+- nft [1 bit]
+- rho [32 byte]
+- rseed [???]
+- memo [512 byte]
