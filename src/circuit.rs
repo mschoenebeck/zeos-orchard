@@ -1,22 +1,17 @@
 //! The ZEOS Action circuit implementation.
 
-use core::fmt;
-
 use group::{Curve, GroupEncoding};
 use halo2_proofs::{
     circuit::{floor_planner, Layouter, Value},
     plonk::{
-        self, Advice, BatchVerifier, Column, Constraints, Instance as InstanceColumn,
-        Selector, SingleVerifier,
+        self, Advice, Column, Constraints, Instance as InstanceColumn,
+        Selector
     },
     poly::Rotation,
-    transcript::{Blake2bRead, Blake2bWrite},
 };
-use memuse::DynamicUsage;
 use pasta_curves::{arithmetic::CurveAffine, pallas, vesta};
-use rand::RngCore;
 
-use rustzeos::{halo2::{VerifyingKey, ProvingKey, Proof}};
+use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey};
 
 use self::{
     commit_ivk::{CommitIvkChip, CommitIvkConfig},
