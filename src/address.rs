@@ -30,15 +30,18 @@ impl Address {
         Address { d, pk_d }
     }
 
-    pub(crate) fn diversifier(&self) -> Diversifier {
+    /// returns the diversifier
+    pub fn diversifier(&self) -> Diversifier {
         self.d
     }
 
-    pub(crate) fn g_d(&self) -> NonIdentityPallasPoint {
+    /// returns g_d
+    pub fn g_d(&self) -> NonIdentityPallasPoint {
         diversify_hash(self.d.as_array())
     }
 
-    pub(crate) fn pk_d(&self) -> &DiversifiedTransmissionKey {
+    /// returns pk_d
+    pub fn pk_d(&self) -> &DiversifiedTransmissionKey {
         &self.pk_d
     }
 

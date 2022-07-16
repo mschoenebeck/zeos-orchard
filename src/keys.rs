@@ -211,7 +211,7 @@ impl SpendValidatingKey {
 /// [`Note`]: crate::note::Note
 /// [orchardkeycomponents]: https://zips.z.cash/protocol/nu5.pdf#orchardkeycomponents
 #[derive(Copy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct NullifierDerivingKey(pallas::Base);
+pub struct NullifierDerivingKey(pallas::Base);
 
 impl NullifierDerivingKey {
     pub(crate) fn inner(&self) -> pallas::Base {
@@ -252,7 +252,7 @@ impl NullifierDerivingKey {
 ///
 /// [orchardkeycomponents]: https://zips.z.cash/protocol/nu5.pdf#orchardkeycomponents
 #[derive(Copy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct CommitIvkRandomness(pallas::Scalar);
+pub struct CommitIvkRandomness(pallas::Scalar);
 
 impl From<&SpendingKey> for CommitIvkRandomness {
     fn from(sk: &SpendingKey) -> Self {
@@ -337,12 +337,13 @@ impl From<FullViewingKey> for SpendValidatingKey {
 }
 
 impl FullViewingKey {
-    pub(crate) fn nk(&self) -> &NullifierDerivingKey {
+    /// nullifier deriving key
+    pub fn nk(&self) -> &NullifierDerivingKey {
         &self.nk
     }
 
     /// Returns either `rivk` or `rivk_internal` based on `scope`.
-    pub(crate) fn rivk(&self, scope: Scope) -> CommitIvkRandomness {
+    pub fn rivk(&self, scope: Scope) -> CommitIvkRandomness {
         match scope {
             Scope::External => self.rivk,
             Scope::Internal => {

@@ -1,8 +1,7 @@
 use incrementalmerkletree::{bridgetree::BridgeTree, Hashable, Tree};
-use orchard::{
+use zeos_orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
-    //circuit::{ProvingKey, VerifyingKey},
     circuit::{Circuit, K},
     keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
     note::ExtractedNoteCommitment,
