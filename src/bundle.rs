@@ -29,7 +29,7 @@ use rustzeos::halo2::{Proof, VerifyingKey};
 impl<T> Action<T> {
     /// Prepares the public instance for this action, for creating and verifying the
     /// bundle proof.
-    pub fn to_instance(&self, flags: Flags, anchor: Anchor) -> Instance {
+    pub fn to_instance(&self, anchor: Anchor) -> Instance {
         Instance {
             anchor,
             nf: *self.nullifier(),
@@ -276,7 +276,7 @@ impl<T: Authorization, V> Bundle<T, V> {
     pub(crate) fn to_instances(&self) -> Vec<Instance> {
         self.actions
             .iter()
-            .map(|a| a.to_instance(self.flags, self.anchor))
+            .map(|a| a.to_instance(self.anchor))
             .collect()
     }
 

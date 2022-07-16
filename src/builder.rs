@@ -443,7 +443,7 @@ impl<S: InProgressSignatures, V> Bundle<InProgress<Unproven, S>, V> {
         let instances: Vec<_> = self
             .actions()
             .iter()
-            .map(|a| a.to_instance(*self.flags(), *self.anchor()))
+            .map(|a| a.to_instance(*self.anchor()))
             .collect();
         self.try_map_authorization(
             &mut (),
