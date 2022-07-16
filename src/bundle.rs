@@ -24,7 +24,7 @@ use crate::{
     tree::Anchor,
     value::{ValueCommitTrapdoor, ValueCommitment, ValueSum, NoteValue},
 };
-use rustzeos::halo2::{Proof, VerifyingKey};
+use rustzeos::halo2::{Proof, VerifyingKey, Instance as ConcreteInstance};
 
 impl<T> Action<T> {
     /// Prepares the public instance for this action, for creating and verifying the
@@ -429,9 +429,10 @@ impl<V> Bundle<Authorized, V> {
 
     /// Verifies the proof for this bundle.
     pub fn verify_proof(&self, vk: &VerifyingKey) -> Result<(), halo2_proofs::plonk::Error> {
+        let instances: Vec<_> = self.to_instances().iter().map(|i| i.to_halo2_instance_vec()).collect();
         self.authorization()
             .proof()
-            .verify(vk, &self.to_instances())
+            .verify(vk, &instances)
     }
 }
 

@@ -944,7 +944,7 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
 
     use super::{Circuit, Instance, K};
-    use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey};
+    use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey, Instance as ConcreteInstance};
     use crate::{
         keys::SpendValidatingKey,
         note::Note,
@@ -1022,7 +1022,7 @@ mod tests {
         let (circuits, instances): (Vec<_>, Vec<_>) = iter::once(())
             .map(|()| generate_circuit_instance(&mut rng))
             .unzip();
-
+        
         let vk = VerifyingKey::build(Circuit::default(), K);
 
         // serialize and deserialize vk back and forth
@@ -1071,6 +1071,7 @@ mod tests {
 
         let pk = ProvingKey::build(Circuit::default(), K);
         let proof = Proof::create(&pk, &circuits, &instances, &mut rng).unwrap();
+        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
         assert!(proof.verify(&vk, &instances).is_ok());
         //assert_eq!(proof.0.len(), expected_proof_size);
     }
@@ -1152,7 +1153,8 @@ mod tests {
 
                 let pk = ProvingKey::build(Circuit::default(), K);
                 let proof = Proof::create(&pk, &[circuit], instances, &mut rng).unwrap();
-                assert!(proof.verify(&vk, instances).is_ok());
+                let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
+                assert!(proof.verify(&vk, &instances).is_ok());
 
                 let file = std::fs::File::create("src/circuit_proof_test_case.bin")?;
                 write_test_case(file, &instance, &proof)
@@ -1167,7 +1169,9 @@ mod tests {
         };
         //assert_eq!(proof.0.len(), 4992);
 
-        assert!(proof.verify(&vk, &[instance]).is_ok());
+        let instances = &[instance];
+        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
+        assert!(proof.verify(&vk, &instances).is_ok());
     }
 
     // cargo test --features dev-graph --package orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
