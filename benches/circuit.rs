@@ -15,7 +15,7 @@ use zeos_orchard::{
     value::NoteValue,
     Anchor, Bundle,
 };
-use rustzeos::halo2::{ProvingKey, VerifyingKey};
+use rustzeos::halo2::{ProvingKey, VerifyingKey, Instance as ConcreteInstance};
 use rand::rngs::OsRng;
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -77,6 +77,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .unwrap();
             assert!(bundle.verify_proof(&vk).is_ok());
             group.bench_function(BenchmarkId::new("bundle", num_recipients), |b| {
+                let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
                 b.iter(|| bundle.authorization().proof().verify(&vk, &instances));
             });
         }
