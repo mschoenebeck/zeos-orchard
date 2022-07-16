@@ -1,5 +1,5 @@
 [package]
-name = "orchard"
+name = "zeos-orchard"
 version = "0.2.0"
 authors = [
     "Sean Bowe <sean@electriccoin.co>",
@@ -23,7 +23,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "katex-header.html"]
 
 [dependencies]
-rustzeos = { path = "../rustzeos" }
+rustzeos = { version = "0.1.0", path = "../rustzeos" }
 aes = "0.7"
 bitvec = "1"
 blake2b_simd = "1"

@@ -6,7 +6,7 @@ use criterion::{BenchmarkId, Criterion};
 #[cfg(unix)]
 use pprof::criterion::{Output, PProfProfiler};
 
-use orchard::{
+use zeos_orchard::{
     builder::Builder,
     bundle::Flags,
     //circuit::{ProvingKey, VerifyingKey},
@@ -42,7 +42,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let instances: Vec<_> = bundle
             .actions()
             .iter()
-            .map(|a| a.to_instance(*bundle.flags(), *bundle.anchor()))
+            .map(|a| a.to_instance(*bundle.anchor()))
             .collect();
 
         (bundle, instances)
