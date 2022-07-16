@@ -11,8 +11,6 @@ use halo2_proofs::{
 };
 use pasta_curves::{arithmetic::CurveAffine, pallas, vesta};
 
-use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey};
-
 use self::{
     commit_ivk::{CommitIvkChip, CommitIvkConfig},
     gadget::{
@@ -945,7 +943,8 @@ mod tests {
     use pasta_curves::pallas;
     use rand::{rngs::OsRng, RngCore};
 
-    use super::{Circuit, Instance, Proof, ProvingKey, VerifyingKey, K};
+    use super::{Circuit, Instance, K};
+    use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey};
     use crate::{
         keys::SpendValidatingKey,
         note::Note,
@@ -1025,6 +1024,11 @@ mod tests {
             .unzip();
 
         let vk = VerifyingKey::build(Circuit::default(), K);
+
+        // serialize and deserialize vk back and forth
+        let mut arr = Vec::new();
+        vk.serialize(&mut arr);
+        let vk = VerifyingKey::deserialize(&mut arr);
 /*
         // Test that the pinned verification key (representing the circuit)
         // is as expected.
