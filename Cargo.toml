@@ -23,7 +23,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "katex-header.html"]
 
 [dependencies]
-rustzeos = { version = "0.1.0", path = "../rustzeos" }
+rustzeos = { version = "0.1.0", path = "../rustzeos", features = ["multicore"] }
 aes = "0.7"
 bitvec = "1"
 blake2b_simd = "1"
