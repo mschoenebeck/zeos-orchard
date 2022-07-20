@@ -1,8 +1,61 @@
-# ZEOS <a href="https://zeos.one"><img src="https://zeos.one/assets/img/icons/zeos_black.svg" alt="zeos.one" height="32"/></a>
+# ZEOS Orchard
 
-Requires Rust 1.56.1+.
+This is the main application for the [ZEOS](https://zeos.one) protocol for private and untraceable transactions on the EOS Blockchain. This application will be deployed to the [EOS Mainnet](https://eos.io/eos-public-blockchain/).
 
-## Documentation
+See also:
+- [The ZEOS Book](https://mschoenebeck.github.io/zeos-orchard/) (including a full protocol specification)
+- [Token Contract (Orchard)](https://github.com/mschoenebeck/thezeostoken/tree/orchard)
+- [JS Wallet (Orchard)](https://github.com/mschoenebeck/zeos-wallet/tree/orchard)
 
-- [The ZEOS Book](https://mschoenebeck.github.io/zeos-orchard/)
+## Description
+This repository is a fork of [Zcash Orchard](https://github.com/zcash/orchard). The application enables Zcash-like shielded transactions of fungible and non-fungible tokens on the EOS blockchain. Check out the [Whitepaper](https://github.com/mschoenebeck/zeos-docs/releases/download/v1.0.0/zeos_whitepaper_v1.0.0.pdf) for more Information.
 
+This application is built on [EOSIO](https://eos.io/) and [Liquidapps'](https://liquidapps.io/) DAPP Network Services.
+
+## Getting Started
+
+To setup the full workspace clone the dependencies ([rustzeos](https://github.com/mschoenebeck/rustzeos), [halo2](https://github.com/mschoenebeck/halo2)), [pasta_curves](https://github.com/mschoenebeck/pasta_curves)), [reddsa](https://github.com/mschoenebeck/reddsa)), the smart contract and the JS wallet as well:
+
+```
+mkdir zeos
+cd zeos
+git clone https://github.com/mschoenebeck/rustzeos.git
+git clone https://github.com/mschoenebeck/halo2.git
+git clone https://github.com/mschoenebeck/pasta_curves.git
+git clone https://github.com/mschoenebeck/reddsa.git
+git clone https://github.com/mschoenebeck/thezeostoken.git
+cd thezeostoken && git checkout orchard && cd ..
+git clone https://github.com/mschoenebeck/zeos-wallet.git
+cd zeos-wallet && git checkout orchard && cd ..
+```
+
+Clone this repository:
+
+```
+git clone https://github.com/mschoenebeck/zeos-orchard.git
+cd zeos-orchard
+```
+
+Build the project as Rust library:
+
+```
+cargo build
+```
+
+### Dependencies
+
+- The [Rust Toolchain](https://www.rust-lang.org/tools/install)
+
+## Authors
+
+Matthias Schönebeck
+
+## License
+
+It's open source. Do with it whatever you want.
+
+## Acknowledgments
+
+Big thanks to the Electric Coin Company for developing, documenting and maintaining this awesome open source codebase for zk-SNARKs!
+
+* [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)
