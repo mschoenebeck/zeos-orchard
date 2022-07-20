@@ -164,11 +164,49 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-<h1><a class="header" href="#zeos-a-hrefhttpszeosoneimg-srchttpszeosoneassetsimgiconszeos_blacksvg-altzeosone-height32a" id="zeos-a-hrefhttpszeosoneimg-srchttpszeosoneassetsimgiconszeos_blacksvg-altzeosone-height32a">ZEOS <a href="https://zeos.one"><img src="https://zeos.one/assets/img/icons/zeos_black.svg" alt="zeos.one" height="32"/></a></a></h1>
-<p>Requires Rust 1.56.1+.</p>
-<h2><a class="header" href="#documentation" id="documentation">Documentation</a></h2>
+<h1><a class="header" href="#zeos-orchard" id="zeos-orchard">ZEOS Orchard</a></h1>
+<p>This is the main application for the <a href="https://zeos.one">ZEOS</a> protocol for private and untraceable transactions on the EOS Blockchain. This application will be deployed to the <a href="https://eos.io/eos-public-blockchain/">EOS Mainnet</a>.</p>
+<p>See also:</p>
 <ul>
-<li><a href="https://mschoenebeck.github.io/zeos-orchard/">The ZEOS Book</a></li>
+<li><a href="https://mschoenebeck.github.io/zeos-orchard/">The ZEOS Book</a> (including a full protocol specification)</li>
+<li><a href="https://github.com/mschoenebeck/thezeostoken/tree/orchard">Token Contract (Orchard)</a></li>
+<li><a href="https://github.com/mschoenebeck/zeos-wallet/tree/orchard">JS Wallet (Orchard)</a></li>
+</ul>
+<h2><a class="header" href="#description" id="description">Description</a></h2>
+<p>This repository is a fork of <a href="https://github.com/zcash/orchard">Zcash Orchard</a>. The application enables Zcash-like shielded transactions of fungible and non-fungible tokens on the EOS blockchain. Check out the <a href="https://github.com/mschoenebeck/zeos-docs/releases/download/v1.0.0/zeos_whitepaper_v1.0.0.pdf">Whitepaper</a> for more Information.</p>
+<p>This application is built on <a href="https://eos.io/">EOSIO</a> and <a href="https://liquidapps.io/">Liquidapps'</a> DAPP Network Services.</p>
+<h2><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h2>
+<p>To setup the full workspace clone the dependencies (<a href="https://github.com/mschoenebeck/rustzeos">rustzeos</a>, <a href="https://github.com/mschoenebeck/halo2">halo2</a>), <a href="https://github.com/mschoenebeck/pasta_curves">pasta_curves</a>), <a href="https://github.com/mschoenebeck/reddsa">reddsa</a>), the smart contract and the JS wallet as well:</p>
+<pre><code>mkdir zeos
+cd zeos
+git clone https://github.com/mschoenebeck/rustzeos.git
+git clone https://github.com/mschoenebeck/halo2.git
+git clone https://github.com/mschoenebeck/pasta_curves.git
+git clone https://github.com/mschoenebeck/reddsa.git
+git clone https://github.com/mschoenebeck/thezeostoken.git
+cd thezeostoken &amp;&amp; git checkout orchard &amp;&amp; cd ..
+git clone https://github.com/mschoenebeck/zeos-wallet.git
+cd zeos-wallet &amp;&amp; git checkout orchard &amp;&amp; cd ..
+</code></pre>
+<p>Clone this repository:</p>
+<pre><code>git clone https://github.com/mschoenebeck/zeos-orchard.git
+cd zeos-orchard
+</code></pre>
+<p>Build the project as Rust library:</p>
+<pre><code>cargo build
+</code></pre>
+<h3><a class="header" href="#dependencies" id="dependencies">Dependencies</a></h3>
+<ul>
+<li>The <a href="https://www.rust-lang.org/tools/install">Rust Toolchain</a></li>
+</ul>
+<h2><a class="header" href="#authors" id="authors">Authors</a></h2>
+<p>Matthias Schönebeck</p>
+<h2><a class="header" href="#license" id="license">License</a></h2>
+<p>It's open source. Do with it whatever you want.</p>
+<h2><a class="header" href="#acknowledgments" id="acknowledgments">Acknowledgments</a></h2>
+<p>Big thanks to the Electric Coin Company for developing, documenting and maintaining this awesome open source codebase for zk-SNARKs!</p>
+<ul>
+<li><a href="https://zips.z.cash/protocol/protocol.pdf">Zcash Protocol Specification</a></li>
 </ul>
 
                     </main>
