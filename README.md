@@ -10,11 +10,11 @@ See also:
 ## Description
 This repository is a fork of [Zcash Orchard](https://github.com/zcash/orchard). The application enables Zcash-like shielded transactions of fungible and non-fungible tokens on the EOS blockchain. Check out the [Whitepaper](https://github.com/mschoenebeck/zeos-docs/releases/download/v1.0.0/zeos_whitepaper_v1.0.0.pdf) for more Information.
 
-This application is built on [EOSIO](https://eos.io/) and [Liquidapps'](https://liquidapps.io/) DAPP Network Services.
+This application is built on [EOSIO](https://eos.io/) and [Liquidapps' DAPP Network](https://liquidapps.io/) services.
 
 ## Getting Started
 
-To setup the full workspace clone the dependencies ([rustzeos](https://github.com/mschoenebeck/rustzeos), [halo2](https://github.com/mschoenebeck/halo2)), [pasta_curves](https://github.com/mschoenebeck/pasta_curves)), [reddsa](https://github.com/mschoenebeck/reddsa)), the smart contract and the JS wallet as well:
+To setup the full workspace clone the dependencies [rustzeos](https://github.com/mschoenebeck/rustzeos), [halo2](https://github.com/mschoenebeck/halo2), [pasta_curves](https://github.com/mschoenebeck/pasta_curves), [reddsa](https://github.com/mschoenebeck/reddsa), the smart contract and the JS wallet as well:
 
 ```
 mkdir zeos
@@ -44,7 +44,10 @@ cargo build
 
 ### Dependencies
 
-- The [Rust Toolchain](https://www.rust-lang.org/tools/install)
+- [Rust Toolchain](https://www.rust-lang.org/tools/install)
+
+## Help
+If you need help join us on [Telegram](https://t.me/ZeosOnEos).
 
 ## Authors
 
