@@ -1,6 +1,6 @@
 # ZEOS Orchard
 
-This is the main application for the [ZEOS](https://zeos.one) protocol for private and untraceable transactions on the EOS Blockchain. This application will be deployed to the [EOS Mainnet](https://eos.io/eos-public-blockchain/).
+This is the main application of the [ZEOS](https://zeos.one) protocol for private and untraceable transactions on the EOS Blockchain. This application will be deployed to the [EOS Mainnet](https://eos.io/eos-public-blockchain/).
 
 See also:
 - [The ZEOS Book](https://mschoenebeck.github.io/zeos-orchard/) (including a full protocol specification)
