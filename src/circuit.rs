@@ -1174,7 +1174,7 @@ mod tests {
         assert!(proof.verify(&vk, &instances).is_ok());
     }
 
-    // cargo test --features dev-graph --package orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
+    // cargo test --features dev-graph --package zeos-orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
     #[cfg(feature = "dev-graph")]
     #[test]
     fn print_action_circuit() {
@@ -1209,6 +1209,8 @@ mod tests {
             rho_b: Value::unknown(),
             psi_b: Value::unknown(),
             rcm_b: Value::unknown(),
+            g_d_c: Value::unknown(),
+            pk_d_c: Value::unknown(),
             d1_c: Value::unknown(),
             psi_c: Value::unknown(),
             rcm_c: Value::unknown(),
