@@ -29,7 +29,8 @@ The following list contains all private inputs to the top level ZEOS action circ
 
 TODO: DEFINE SYMBOLS
 
-Transaction Input (note A):
+Note A (transaction input):
+
 1. $\mathsf{path}$
 2. $\mathsf{pos}$
 3. $\DiversifiedTransmitBase_a$
@@ -45,7 +46,8 @@ Transaction Input (note A):
 13. $\mathsf{nk}$
 14. $\mathsf{rivk}$
 
-Transaction Output (note B):
+Note B (transaction output):
+
 15. $\DiversifiedTransmitBase_b$
 16. $\DiversifiedTransmitPublic_b$
 17. $\mathsf{d1}_b$
@@ -55,7 +57,8 @@ Transaction Output (note B):
 21. $\psi_b$
 22. $\mathsf{rcm}_b$
 
-Transaction Output (note C):
+Note C (transaction output):
+
 23. $\DiversifiedTransmitBase_c$
 24. $\DiversifiedTransmitPublic_c$
 25. $\mathsf{d1}_c$
@@ -138,9 +141,8 @@ BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & d1
 $
 
 ### MINTFT/BURNAUTH
-<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
-
-Public Inputs:
+<img align="right" height="300" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
+Note: The private actions 'MINTFT' and 'BURNAUTH' share the exact same circuit configuration.
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -150,9 +152,23 @@ $
 \end{array}
 $
 
-Private Inputs:
+Given:
+$$\mathsf{ANCHOR} = \mathsf{NF} = \mathsf{RK_x} = \mathsf{RK_y} = 0 $$
+$$ \Rightarrow $$
+$$\mathsf{d1}_a = 0$$
+because of constraints (2), (5), (6) and (8).
 
-$\mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc$
+Given:
+$$\mathsf{d1}_a = 0, \mathsf{d1}_b ≠ 0 $$
+$$ \Rightarrow $$
+$$\mathsf{d1}_c = 0$$
+because of constraint (1).
+
+Given:
+$$\mathsf{CM}_B ≠ 0 $$
+$$ \Rightarrow $$
+$$\mathsf{CM}_B = \mathsf{cm}_b$$
+because of constraint (12).
 
 ### MINTNFT
 <img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
