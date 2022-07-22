@@ -125,18 +125,19 @@ For circuit part C the following constraints must hold:
 15. $$\mathsf{CM}_C \cdot (\mathsf{CM}_C - \mathsf{cm}_c) = 0$$
 
 ## Configurations
+The variables $val$, $sym$ and $sc$ represent non-zero input values.
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \hline
 Private Action & \mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & C {d1} & \mathsf{CM_B} & \mathsf{CM}_C & Private Inputs \\\hline
-MINTFT/BURNAUTH & 0 & 0 & 0 & 0 & 0 & d1 & d2 & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
-MINTNFT & 0 & 0 & 0 & 0 & 1 & d1 & d2 & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
+MINTFT/BURNAUTH & 0 & 0 & 0 & 0 & 0 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
+MINTNFT & 0 & 0 & 0 & 0 & 1 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
 TRANSFERFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c \\\hline
 TRANSFERNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = \mathsf{d1}_b,  \mathsf{d1}_c = 0 \\\hline
-BURNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & d1 & d2 & sc & 0 & 0 & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
-BURNFT2 & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & d1b & d2 & sc & d1c & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = d1b, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc, \mathsf{d1}_c = d1c \\\hline
-BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & d1 & d2 & sc & 0 & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
+BURNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & val & sym & sc & 0 & 0 & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
+BURNFT2 & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & val_b & sym & sc & val_c & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = val_b, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc, \mathsf{d1}_c = val_c \\\hline
+BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & val & sym & sc & 0 & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
 \end{array}
 $
 
@@ -171,8 +172,33 @@ $$\mathsf{CM}_B = \mathsf{cm}_b$$
 because of constraint (12).
 
 ### MINTNFT
-<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
-TODO
+<img align="right" height="300" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
+
+$
+\begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & C {d1} & \mathsf{CM_B} & \mathsf{CM}_C \\\hline
+0 & 0 & 0 & 0 & 1 & d1 & d2 & sc & 0 & \mathsf{cm}_b & 0 & \\\hline
+\end{array}
+$
+
+Given:
+$$\mathsf{ANCHOR} = \mathsf{NF} = \mathsf{RK_x} = \mathsf{RK_y} = 0 $$
+$$ \Rightarrow $$
+$$\mathsf{d1}_a = 0$$
+because of constraints (2), (5), (6) and (8).
+
+Given:
+$$\mathsf{NFT} = \mathsf{d1}_a = 0, \mathsf{d1}_b ≠ 0 $$
+$$ \Rightarrow $$
+$$\mathsf{d1}_c = 0$$
+because of constraints (1) and (13).
+
+Given:
+$$\mathsf{CM}_B ≠ 0 $$
+$$ \Rightarrow $$
+$$\mathsf{CM}_B = \mathsf{cm}_b$$
+because of constraint (12).
 
 ### TRANSFERFT
 <img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
