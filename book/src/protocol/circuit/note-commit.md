@@ -2,8 +2,7 @@
 
 ## Message decomposition
 
-$\SinsemillaCommit$ is used in the
-[$\NoteCommit$ function](https://zips.z.cash/protocol/protocol.pdf#concretesinsemillacommit).
+$\SinsemillaCommit$ is used in the [$\NoteCommit$ function]().
 The input to $\SinsemillaCommit$ is:
 
 $$\DiversifiedTransmitBaseRepr \bconcat

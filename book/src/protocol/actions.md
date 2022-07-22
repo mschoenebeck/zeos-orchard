@@ -2,8 +2,8 @@
 
 There are eight private action types:
 
-- MINTFT
 - BURNAUTH
+- MINTFT
 - MINTNFT
 - TRANSFERFT
 - TRANSFERNFT
