@@ -127,16 +127,33 @@ $$
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \hline
 Private Action & \mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & C {d1} & \mathsf{CM_B} & \mathsf{CM}_C & Private Inputs \\\hline
-MINTFT/BURNAUTH & 0 & 0 & 0 & 0 & 0 & d1 & d2 & sc & 0 & cm & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{cm}_b = cm \\\hline
-MINTNFT & 0 & 0 & 0 & 0 & 1 & d1 & d2 & sc & 0 & cm & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{cm}_b = cm \\\hline
-TRANSFERFT & \mathsf{root} & nf & 0 & 0 & 1 & d1 & d2 & sc & 0 & cm & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{cm}_b = cm \\\hline
+MINTFT/BURNAUTH & 0 & 0 & 0 & 0 & 0 & d1 & d2 & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
+MINTNFT & 0 & 0 & 0 & 0 & 1 & d1 & d2 & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
+TRANSFERFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c \\\hline
+TRANSFERNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = \mathsf{d1}_b,  \mathsf{d1}_c = 0 \\\hline
+BURNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & d1 & d2 & sc & 0 & 0 & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
+BURNFT2 & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & d1b & d2 & sc & d1c & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = d1b, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc, \mathsf{d1}_c = d1c \\\hline
+BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & d1 & d2 & sc & 0 & 0 & 0 & \mathsf{d1}_a = \mathsf{d1}_b, \mathsf{d1}_c = 0, \mathsf{d1}_b = d1, \mathsf{d2}_b = d2, \mathsf{sc}_b = sc \\\hline
 \end{array}
 $$
 
 ### MINTFT/BURNAUTH
+TODO
+
 ### MINTNFT
+TODO
+
 ### TRANSFERFT
+TODO
+
 ### TRANSFERNFT
+TODO
+
 ### BURNFT
+TODO
+
 ### BURNFT2
+TODO
+
 ### BURNNFT
+TODO
