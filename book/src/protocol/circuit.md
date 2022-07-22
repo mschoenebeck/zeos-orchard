@@ -257,7 +257,7 @@ Given:\
 $\mathsf{d1}_a ≠ 0$\
 $ \Rightarrow $\
 $\mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c$\
-$\mathsf{d2}_a = \mathsf{d2}_b$\
+$\mathsf{d2}_a = \mathsf{d2}_b = sym$\
 because of constraints (1) and (7).
 
 Given:\
@@ -316,8 +316,8 @@ because of constraint (13).
 Given:\
 $\mathsf{d1}_a ≠ 0, \mathsf{d1}_c = 0$\
 $ \Rightarrow $\
-$\mathsf{d1}_a = \mathsf{d1}_b$\
-$\mathsf{d2}_a = \mathsf{d2}_b$\
+$\mathsf{d1}_a = \mathsf{d1}_b = val$\
+$\mathsf{d2}_a = \mathsf{d2}_b = sym$\
 because of constraints (1) and (7).
 
 Given:\
@@ -355,12 +355,189 @@ $
 \end{array}
 $
 
-\mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc
+Given:\
+$\mathsf{ANCHOR} ≠ 0, \mathsf{NF} ≠ 0, \mathsf{RK}_x ≠ 0, \mathsf{RK}_y ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a ≠ 0$\
+because of constraints (2), (4), (5) and (8).
+
+Given:\
+$\mathsf{B}_{d1} = val ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d1}_b = \mathsf{B}_{d1} = val$\
+because of constraint (9).
+
+Given:\
+$\mathsf{B}_{d2} = sym ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d2}_b = \mathsf{B}_{d2} = sym$\
+because of constraint (10).
+
+Given:\
+$\mathsf{B}_{sc} = sc ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{sc}_b = \mathsf{B}_{sc} = sc$\
+because of constraint (11).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c$\
+$\mathsf{d2}_a = \mathsf{d2}_b = sym$\
+because of constraints (1) and (7).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{ANCHOR} = root $\
+because of constraint (2).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{NF} = \mathsf{nf}_a = \rho_b$\
+because of constraint (8).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{RK}_{x/y} = \mathsf{rk}_{x/y}$\
+because of constraints (4) and (5).
+
+Given:\
+$\mathsf{CM}_C ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{CM}_C = \mathsf{cm}_c$\
+because of constraint (15).
 
 ### BURNFT2
 <img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
-TODO
+
+$
+\begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & \mathsf{C}_{d1} & \mathsf{CM_B} & \mathsf{CM}_C \\\hline
+\mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & val_b & sym & sc & val_c & 0 & 0 \\\hline
+\end{array}
+$
+
+Given:\
+$\mathsf{ANCHOR} ≠ 0, \mathsf{NF} ≠ 0, \mathsf{RK}_x ≠ 0, \mathsf{RK}_y ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a ≠ 0$\
+because of constraints (2), (4), (5) and (8).
+
+Given:\
+$\mathsf{B}_{d1} = val_b ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d1}_b = \mathsf{B}_{d1} = val_b$\
+because of constraint (9).
+
+Given:\
+$\mathsf{B}_{d2} = sym ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d2}_b = \mathsf{B}_{d2} = sym$\
+because of constraint (10).
+
+Given:\
+$\mathsf{B}_{sc} = sc ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{sc}_b = \mathsf{B}_{sc} = sc$\
+because of constraint (11).
+
+Given:\
+$\mathsf{C}_{d1} = val_c ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d1}_c = \mathsf{C}_{d1} = val_c$\
+because of constraint (14).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c$\
+$\mathsf{d2}_a = \mathsf{d2}_b = sym$\
+because of constraints (1) and (7).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{ANCHOR} = root $\
+because of constraint (2).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{NF} = \mathsf{nf}_a = \rho_b$\
+because of constraint (8).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{RK}_{x/y} = \mathsf{rk}_{x/y}$\
+because of constraints (4) and (5).
 
 ### BURNNFT
 <img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
-TODO
+
+$
+\begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & \mathsf{C}_{d1} & \mathsf{CM_B} & \mathsf{CM}_C \\\hline
+\mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & val & sym & sc & 0 & 0 & 0 \\\hline
+\end{array}
+$
+
+Given:\
+$\mathsf{ANCHOR} ≠ 0, \mathsf{NF} ≠ 0, \mathsf{RK}_x ≠ 0, \mathsf{RK}_y ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a ≠ 0$\
+because of constraints (2), (4), (5) and (8).
+
+Given:\
+$\mathsf{B}_{d1} = val ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d1}_b = \mathsf{B}_{d1} = val$\
+because of constraint (9).
+
+Given:\
+$\mathsf{B}_{d2} = sym ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{d2}_b = \mathsf{B}_{d2} = sym$\
+because of constraint (10).
+
+Given:\
+$\mathsf{B}_{sc} = sc ≠ 0 $\
+$ \Rightarrow $\
+$\mathsf{sc}_b = \mathsf{B}_{sc} = sc$\
+because of constraint (11).
+
+Given:\
+$\mathsf{NFT} = 1 $\
+$ \Rightarrow $\
+$\mathsf{d1}_c = 0$\
+because of constraint (13).
+
+Given:\
+$\mathsf{d1}_a ≠ 0, \mathsf{d1}_c = 0$\
+$ \Rightarrow $\
+$\mathsf{d1}_a = \mathsf{d1}_b = val$\
+$\mathsf{d2}_a = \mathsf{d2}_b = sym$\
+because of constraints (1) and (7).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{ANCHOR} = root $\
+because of constraint (2).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{NF} = \mathsf{nf}_a = \rho_b$\
+because of constraint (8).
+
+Given:\
+$\mathsf{d1}_a ≠ 0$\
+$ \Rightarrow $\
+$\mathsf{RK}_{x/y} = \mathsf{rk}_{x/y}$\
+because of constraints (4) and (5).
