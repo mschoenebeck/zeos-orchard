@@ -138,22 +138,29 @@ BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & d1
 $$
 
 ### MINTFT/BURNAUTH
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 TODO
 
 ### MINTNFT
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 TODO
 
 ### TRANSFERFT
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 TODO
 
 ### TRANSFERNFT
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
 TODO
 
 ### BURNFT
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 TODO
 
 ### BURNFT2
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 TODO
 
 ### BURNNFT
+<img align="right" height="100" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
 TODO
