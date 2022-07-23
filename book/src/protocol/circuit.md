@@ -142,7 +142,7 @@ BURNNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & va
 $
 
 ### MINTFT/BURNAUTH
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 Note: The private actions 'MINTFT' and 'BURNAUTH' share the exact same circuit configuration.
 
 $
@@ -178,7 +178,7 @@ $ \Rightarrow $\
 $\mathsf{CM}_B = \mathsf{cm}_b$ because of constraint (12)
 
 ### MINTNFT
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -213,7 +213,7 @@ $ \Rightarrow $\
 $\mathsf{CM}_B = \mathsf{cm}_b$ because of constraint (12)
 
 ### TRANSFERFT
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -244,7 +244,7 @@ $ \Rightarrow $\
 $\mathsf{CM}_C = \mathsf{cm}_c$ because of constraint (15)
 
 ### TRANSFERNFT
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -278,7 +278,7 @@ $ \Rightarrow $\
 $\mathsf{CM}_B = \mathsf{cm}_b$ because of constraint (12)
 
 ### BURNFT
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -317,7 +317,7 @@ $ \Rightarrow $\
 $\mathsf{CM}_C = \mathsf{cm}_c$ because of constraint (15)
 
 ### BURNFT2
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -356,7 +356,7 @@ $\mathsf{NF} = \mathsf{nf}_a = \rho_b$ because of constraint (8)\
 $\mathsf{RK}_{x/y} = \mathsf{rk}_{x/y}$ because of constraints (5) and (6)
 
 ### BURNNFT
-<img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/AB.png?raw=true">
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|}
