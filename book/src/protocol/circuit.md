@@ -1,4 +1,5 @@
 # ZEOS Action Circuit
+<img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
 As in Zcash Orchard there is only one circuit which is used to generate proofs for all private actions. The ZEOS Orchard circuit is very similar to the Zcash circuit. It can be divided in three parts: A, B and C. Each circuit part represents a note and the action circuit describes their relationship to each other. There are two main configurations for this circuit.
 
@@ -95,7 +96,7 @@ TODO: DEFINE SYMBOLS
 7. $\mathsf{cm}_c$
 
 ## Constraints
-The following statements for private and public inputs of the ZEOS action circuit must hold. All statements have to be expressed in form of an equation evaluating to zero.
+The following statements for private and public inputs must hold. All statements have to be expressed in form of an equation evaluating to zero.
 
 For the global statement 'either $A = B + C$ or $A = C = 0$' the following constraint for the note values ($\mathsf{d1}_a, \mathsf{d1}_b, \mathsf{d1}_c$) must hold:
 
