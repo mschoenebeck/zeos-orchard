@@ -40,10 +40,10 @@ $$
     (\text{bits 4..=253 of } x(\mathsf{pk_d})) \bconcat
     (\text{bit 254 of } x(\mathsf{pk_d})) \bconcat
     (ỹ \text{ bit of } \mathsf{pk_d}) \\
-\ItoLEBSP{64}(d1) &= d_2 \bconcat d_3 \bconcat e_0 \\
- &= (\text{bits 0..=7 of } v) \bconcat
-    (\text{bits 8..=57 of } v) \bconcat
-    (\text{bits 58..=63 of } v) \\
+\ItoLEBSP{64}(\mathsf{d1}) &= d_2 \bconcat d_3 \bconcat e_0 \\
+ &= (\text{bits 0..=7 of } \mathsf{d1}) \bconcat
+    (\text{bits 8..=57 of } \mathsf{d1}) \bconcat
+    (\text{bits 58..=63 of } \mathsf{d1}) \\
 \ItoLEBSP{\BaseLength{Orchard}}(\rho) &= e_1 \bconcat f \bconcat g_0 \\
  &= (\text{bits 0..=3 of } \rho) \bconcat
     (\text{bits 4..=253 of } \rho) \bconcat
@@ -53,15 +53,15 @@ $$
     (\text{bits 9..=248 of } \psi) \bconcat
     (\text{bits 249..=253 of } \psi) \bconcat
     (\text{bit 254 of } \psi) \\
-\ItoLEBSP{64}(d2) &= h_2 \bconcat h_3 \\
- &= (\text{bits 0..=3 of } d2) \bconcat
-    (\text{bits 4..=63 of } d2) \\
-\ItoLEBSP{1}(nft) &= i_0 \\
- &= (\text{bit 0 of } nft) \\
-\ItoLEBSP{64}(sc) &= i_1 \bconcat i_2 \bconcat j_0 \bconcat j_1 \\
- &= (\text{bits 0..=8 of } sc) \bconcat
-    (\text{bits 9..=58 of } sc) \bconcat
-    (\text{bits 59..=63 of } sc) \\
+\ItoLEBSP{64}(\mathsf{d2}) &= h_2 \bconcat h_3 \\
+ &= (\text{bits 0..=3 of } \mathsf{d2}) \bconcat
+    (\text{bits 4..=63 of } \mathsf{d2}) \\
+\ItoLEBSP{1}(\mathsf{nft}) &= i_0 \\
+ &= (\text{bit 0 of } \mathsf{nft}) \\
+\ItoLEBSP{64}(\mathsf{sc}) &= i_1 \bconcat i_2 \bconcat j_0 \bconcat j_1 \\
+ &= (\text{bits 0..=8 of } \mathsf{sc}) \bconcat
+    (\text{bits 9..=58 of } \mathsf{sc}) \bconcat
+    (\text{bits 59..=63 of } \mathsf{sc}) \\
 \end{aligned}
 $$
 
