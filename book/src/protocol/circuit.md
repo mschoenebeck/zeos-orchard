@@ -6,12 +6,10 @@ As in Zcash Orchard there is only one circuit which is used to generate proofs f
 It is either:
 
 1. $$A = B + C$$
-$$TRANSFERFT, TRANSFERNFT, BURNFT, BURNFT2, BURNNFT$$
 
 or 
 
 2. $$A = C = 0$$
-$$MINTFT, MINTNFT, BURNAUTH$$
 
 The first configuration is used for all transer and burn actions. Note $A$ represents the note which is being spent by the transaction. Note $B$ represents the receiving part of the transaction whereas note $C$ represents the 'change' which goes usually back into the wallet of the sender (spender of note $A$). Hence the relation $A = B + C$ between the notes.
 
