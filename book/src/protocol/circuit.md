@@ -13,11 +13,11 @@ or
 2. $$A = C = 0$$
 $$MINTFT, MINTNFT, BURNAUTH$$
 
-The first configuration is used for all transer and burn actions. Note A represents the note which is being spent by the transaction. Note B represents the receiving part of the transaction whereas note C represents the 'change' which goes usually back into the wallet of the sender (spender of note A). Hence the relation $A = B + C$ between the notes.
+The first configuration is used for all transer and burn actions. Note $A$ represents the note which is being spent by the transaction. Note $B$ represents the receiving part of the transaction whereas note $C$ represents the 'change' which goes usually back into the wallet of the sender (spender of note $A$). Hence the relation $A = B + C$ between the notes.
 
-In case of NFT transfers (or burns) note C is always zero which enforces A = B. This statement must be true for NFT transfers since they are not divisable.
+In case of NFT transfers (or burns) note $C$ is always zero which enforces $A = B$. This statement must be true for NFT transfers since they are not divisable.
 
-The second configuration is used for minting notes only. The action BURNAUTH is on a circuit-level equivalent to minting new notes. Only on the transaction-level the data is interpreted differently to burn an authentication token instead of minting a new fungible or non-fungible token. The configuration $A = B = 0$ effectively disables the circuit parts A and C leaving only part B enabled.
+The second configuration is used for minting notes only. The action $BURNAUTH$ is on a circuit-level equivalent to minting new notes. Only on the transaction-level the data is interpreted differently to burn an authentication token instead of minting a new fungible or non-fungible token. The configuration $A = B = 0$ effectively disables the circuit parts $A$ and $C$ leaving only part $B$ enabled.
 
 For a more detailed description of the exact action circuit configuration for each specific private action types see below.
 
