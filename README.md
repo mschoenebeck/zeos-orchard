@@ -55,7 +55,17 @@ Matthias Schönebeck
 
 ## License
 
-It's open source. Do with it whatever you want.
+Copyright 2020-2022 The Electric Coin Company.
+
+You may use this package under the Bootstrap Open Source Licence, version 1.0,
+or at your option, any later version. See the file [`COPYING`](COPYING) for
+more details, and [`LICENSE-BOSL`](LICENSE-BOSL) for the terms of the Bootstrap
+Open Source Licence, version 1.0.
+
+The purpose of the BOSL is to allow commercial improvements to the package
+while ensuring that all improvements are open source. See
+[here](https://electriccoin.co/blog/introducing-tgppl-a-radically-new-type-of-open-source-license/)
+for why the BOSL exists.
 
 ## Acknowledgments
 
