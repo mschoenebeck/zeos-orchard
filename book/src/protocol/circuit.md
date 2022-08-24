@@ -28,7 +28,7 @@ The following list contains all private inputs to the top level ZEOS action circ
 
 TODO: DEFINE SYMBOLS
 
-Note A (transaction input):
+Note $A$ (transaction input):
 
 1. $\mathsf{path}$
 2. $\mathsf{pos}$
@@ -45,7 +45,7 @@ Note A (transaction input):
 13. $\mathsf{nk}$
 14. $\mathsf{rivk}$
 
-Note B (transaction output):
+Note $B$ (transaction output):
 
 15. $\DiversifiedTransmitBase_b$
 16. $\DiversifiedTransmitPublic_b$
@@ -56,7 +56,7 @@ Note B (transaction output):
 21. $\psi_b$
 22. $\mathsf{rcm}_b$
 
-Note C (transaction output):
+Note $C$ (transaction output):
 
 23. $\DiversifiedTransmitBase_c$
 24. $\DiversifiedTransmitPublic_c$
