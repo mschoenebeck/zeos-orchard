@@ -118,7 +118,10 @@ pub mod batch
 /// The size of a compact note.
 pub const COMPACT_NOTE_SIZE: usize = 1 + // version
     11 + // diversifier
-    8  + // value
+    8  + // d1
+    8  + // d2
+    8  + // sc
+    8  + // nft
     32; // rseed (or rcm prior to ZIP 212)
 /// The size of [`NotePlaintextBytes`].
 pub const NOTE_PLAINTEXT_SIZE: usize = COMPACT_NOTE_SIZE + 512;
@@ -266,7 +269,7 @@ pub trait Domain {
     /// public data and an `OutgoingViewingKey`.
     fn derive_ock(
         ovk: &Self::OutgoingViewingKey,
-        cv: &Self::ValueCommitment,
+        //cv: &Self::ValueCommitment,
         cmstar_bytes: &Self::ExtractedCommitmentBytes,
         ephemeral_key: &EphemeralKeyBytes,
     ) -> OutgoingCipherKey;
@@ -547,12 +550,12 @@ impl<D: Domain> NoteEncryption<D> {
     /// Generates `outCiphertext` for this note.
     pub fn encrypt_outgoing_plaintext<R: RngCore>(
         &self,
-        cv: &D::ValueCommitment,
+        //cv: &D::ValueCommitment,
         cmstar: &D::ExtractedCommitment,
         rng: &mut R,
     ) -> [u8; OUT_CIPHERTEXT_SIZE] {
         let (ock, input) = if let Some(ovk) = &self.ovk {
-            let ock = D::derive_ock(ovk, &cv, &cmstar.into(), &D::epk_bytes(&self.epk));
+            let ock = D::derive_ock(ovk, /*&cv,*/ &cmstar.into(), &D::epk_bytes(&self.epk));
             let input = D::outgoing_plaintext_bytes(&self.note, &self.esk);
 
             (ock, input)
@@ -733,10 +736,10 @@ pub fn try_output_recovery_with_ovk<D: Domain, Output: ShieldedOutput<D, ENC_CIP
     domain: &D,
     ovk: &D::OutgoingViewingKey,
     output: &Output,
-    cv: &D::ValueCommitment,
+    //cv: &D::ValueCommitment,
     out_ciphertext: &[u8; OUT_CIPHERTEXT_SIZE],
 ) -> Option<(D::Note, D::Recipient, D::Memo)> {
-    let ock = D::derive_ock(ovk, &cv, &output.cmstar_bytes(), &output.ephemeral_key());
+    let ock = D::derive_ock(ovk, /*&cv,*/ &output.cmstar_bytes(), &output.ephemeral_key());
     try_output_recovery_with_ock(domain, &ock, output, out_ciphertext)
 }
 
@@ -848,7 +851,7 @@ const PRF_OCK_ORCHARD_PERSONALIZATION: &[u8; 16] = b"Zcash_Orchardock";
 /// [concreteprfs]: https://zips.z.cash/protocol/nu5.pdf#concreteprfs
 pub(crate) fn prf_ock_orchard(
     ovk: &OutgoingViewingKey,
-    cv: &ValueCommitment,
+    //cv: &ValueCommitment,
     cmx_bytes: &[u8; 32],
     ephemeral_key: &EphemeralKeyBytes,
 ) -> OutgoingCipherKey {
@@ -858,7 +861,7 @@ pub(crate) fn prf_ock_orchard(
             .personal(PRF_OCK_ORCHARD_PERSONALIZATION)
             .to_state()
             .update(ovk.as_ref())
-            .update(&cv.to_bytes())
+            //.update(&cv.to_bytes())
             .update(cmx_bytes)
             .update(ephemeral_key.as_ref())
             .finalize()
@@ -885,16 +888,19 @@ where
 
     // The unwraps below are guaranteed to succeed by the assertion above
     let diversifier = Diversifier::from_bytes(plaintext[1..12].try_into().unwrap());
-    let value = NoteValue::from_bytes(plaintext[12..20].try_into().unwrap());
+    let d1 = NoteValue::from_bytes(plaintext[12..20].try_into().unwrap());
+    let d2 = NoteValue::from_bytes(plaintext[20..28].try_into().unwrap());
+    let sc = NoteValue::from_bytes(plaintext[28..36].try_into().unwrap());
+    let nft = NoteValue::from_bytes(plaintext[36..44].try_into().unwrap());
     let rseed = Option::from(RandomSeed::from_bytes(
-        plaintext[20..COMPACT_NOTE_SIZE].try_into().unwrap(),
+        plaintext[44..COMPACT_NOTE_SIZE].try_into().unwrap(),
         &domain.rho,
     ))?;
 
     let pk_d = get_validated_pk_d(&diversifier)?;
 
     let recipient = Address::from_parts(diversifier, pk_d);
-    let note = Note::from_parts(recipient, value, value, value, value, domain.rho, rseed); // TODO
+    let note = Note::from_parts(recipient, d1, d2, sc, nft, domain.rho, rseed);
     Some((note, recipient))
 }
 
@@ -974,19 +980,22 @@ impl Domain for OrchardDomain {
         let mut np = [0; NOTE_PLAINTEXT_SIZE];
         np[0] = 0x02;
         np[1..12].copy_from_slice(note.recipient().diversifier().as_array());
-        np[12..20].copy_from_slice(&note.d1().to_bytes()); // TODO
-        np[20..52].copy_from_slice(note.rseed().as_bytes());
-        np[52..].copy_from_slice(memo);
+        np[12..20].copy_from_slice(&note.d1().to_bytes());
+        np[20..28].copy_from_slice(&note.d2().to_bytes());
+        np[28..36].copy_from_slice(&note.sc().to_bytes());
+        np[36..44].copy_from_slice(&note.nft().to_bytes());
+        np[44..76].copy_from_slice(note.rseed().as_bytes());
+        np[76..].copy_from_slice(memo);
         NotePlaintextBytes(np)
     }
 
     fn derive_ock(
         ovk: &Self::OutgoingViewingKey,
-        cv: &Self::ValueCommitment,
+        //cv: &Self::ValueCommitment,
         cmstar_bytes: &Self::ExtractedCommitmentBytes,
         ephemeral_key: &EphemeralKeyBytes,
     ) -> OutgoingCipherKey {
-        prf_ock_orchard(ovk, cv, cmstar_bytes, ephemeral_key)
+        prf_ock_orchard(ovk, /*cv,*/ cmstar_bytes, ephemeral_key)
     }
 
     fn outgoing_plaintext_bytes(
@@ -1095,7 +1104,7 @@ pub struct CompactAction {
     nullifier: Nullifier,
     cmx: ExtractedNoteCommitment,
     ephemeral_key: EphemeralKeyBytes,
-    enc_ciphertext: [u8; 52],
+    enc_ciphertext: [u8; COMPACT_NOTE_SIZE],
 }
 
 impl fmt::Debug for CompactAction {
@@ -1137,7 +1146,7 @@ impl CompactAction {
         nullifier: Nullifier,
         cmx: ExtractedNoteCommitment,
         ephemeral_key: EphemeralKeyBytes,
-        enc_ciphertext: [u8; 52],
+        enc_ciphertext: [u8; COMPACT_NOTE_SIZE],
     ) -> Self {
         Self {
             nullifier,
@@ -1257,7 +1266,7 @@ mod tests {
                 None => panic!("Compact note decryption failed"),
             }
 
-            match try_output_recovery_with_ovk(&domain, &ovk, &action, &cv_net, &tv.c_out) {
+            match try_output_recovery_with_ovk(&domain, &ovk, &action, /*&cv_net,*/ &tv.c_out) {
                 Some((decrypted_note, decrypted_to, decrypted_memo)) => {
                     assert_eq!(decrypted_note, note);
                     assert_eq!(decrypted_to, recipient);

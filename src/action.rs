@@ -155,7 +155,7 @@ pub(crate) mod testing {
             // FIXME: make a real one from the note.
             let encrypted_note = TransmittedNoteCiphertext {
                 epk_bytes: [0u8; 32],
-                enc_ciphertext: [0u8; 580],
+                enc_ciphertext: [0u8; 604],
                 out_ciphertext: [0u8; 80]
             };
             Action {
@@ -187,7 +187,7 @@ pub(crate) mod testing {
             // FIXME: make a real one from the note.
             let encrypted_note = TransmittedNoteCiphertext {
                 epk_bytes: [0u8; 32],
-                enc_ciphertext: [0u8; 580],
+                enc_ciphertext: [0u8; 604],
                 out_ciphertext: [0u8; 80]
             };
 

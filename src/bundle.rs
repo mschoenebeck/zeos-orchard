@@ -333,7 +333,7 @@ impl<T: Authorization, V> Bundle<T, V> {
                         &domain,
                         key,
                         action,
-                        action.cv_net(),
+                        //action.cv_net(),
                         &action.encrypted_note().out_ciphertext,
                     )
                     .map(|(n, a, m)| (idx, key.clone(), n, a, m))
@@ -356,7 +356,7 @@ impl<T: Authorization, V> Bundle<T, V> {
                 &domain,
                 key,
                 action,
-                action.cv_net(),
+                //action.cv_net(),
                 &action.encrypted_note().out_ciphertext,
             )
         })
