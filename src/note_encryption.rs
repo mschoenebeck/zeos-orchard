@@ -1164,23 +1164,25 @@ impl CompactAction {
 
 #[cfg(test)]
 mod tests {
+    use group::GroupEncoding;
     use rand::rngs::OsRng;
     use super::{
         try_compact_note_decryption, try_note_decryption, try_output_recovery_with_ovk,
-        EphemeralKeyBytes,
+        EphemeralKeyBytes, NoteEncryption, Domain,
     };
 
     use super::{prf_ock_orchard, CompactAction, OrchardDomain, OrchardNoteEncryption};
+    use crate::value::{ValueSum, ValueCommitTrapdoor};
     use crate::{
         action::Action,
         keys::{
             DiversifiedTransmissionKey, Diversifier, EphemeralSecretKey, IncomingViewingKey,
-            OutgoingViewingKey,
+            OutgoingViewingKey, SpendingKey, FullViewingKey, Scope::External
         },
         note::{ExtractedNoteCommitment, Nullifier, RandomSeed, TransmittedNoteCiphertext},
         primitives::redpallas,
         value::{NoteValue, ValueCommitment},
-        Address, Note,
+        Address, Note
     };
 
     #[test]
@@ -1293,5 +1295,74 @@ mod tests {
             );
  */
         }
+    }
+
+    #[test]
+    fn test_key_derivation_and_encryption()
+    {
+        let mut rng = OsRng.clone();
+
+        // Alice' key material
+        let sk_alice = SpendingKey::from_zip32_seed("This is Alice seed string! Usually this is just a listing of words. Here we just use sentences.".as_bytes(), 0, 0).unwrap();
+        let fvk_alice = FullViewingKey::from(&sk_alice);
+
+        // Bob's key material
+        let sk_bob = SpendingKey::from_zip32_seed("This is Bob's seed string. His seed is a little shorter...".as_bytes(), 0, 0).unwrap();
+        let fvk_bob = FullViewingKey::from(&sk_bob);
+        let recipient = fvk_bob.address_at(0u32, External);
+
+        // Note material
+        let rho = Nullifier::from_bytes(&[1; 32]).unwrap();
+        let note = Note::new(recipient,
+                                   NoteValue::from_raw(100000),
+                                   NoteValue::from_raw(357812230660),
+                                   NoteValue::from_raw(123456789),
+                                   NoteValue::from_raw(0),
+                                   rho,
+                                   rng);
+        let cmx = ExtractedNoteCommitment::from(note.commitment());
+
+        // the ephermeral key pair which is used for encryption/decryption is derived deterministically from the note
+        let esk = OrchardDomain::derive_esk(&note).unwrap();
+        let epk = OrchardDomain::ka_derive_public(&note, &esk);
+        
+        let ne = OrchardNoteEncryption::new(Some(fvk_alice.to_ovk(External)),
+                                                                           note, recipient, [0; 512]);
+        // a dummy action to test encryption/decryption
+        let action = Action::from_parts(
+            rho,
+            redpallas::VerificationKey::dummy(),
+            cmx,
+            TransmittedNoteCiphertext {
+                epk_bytes: epk.to_bytes().0,
+                enc_ciphertext: ne.encrypt_note_plaintext(),
+                out_ciphertext: ne.encrypt_outgoing_plaintext(&cmx, &mut rng),
+            },
+            ValueCommitment::derive(ValueSum::from_raw(0), ValueCommitTrapdoor::random(rng)),
+            (),
+        );
+
+        let domain = OrchardDomain { rho };
+
+        // test receiver decryption
+        match try_note_decryption(&domain, &fvk_bob.to_ivk(External), &action) {
+            Some((decrypted_note, decrypted_to, decrypted_memo)) => {
+                assert_eq!(decrypted_note, note);
+                assert_eq!(decrypted_to, recipient);
+                assert_eq!(&decrypted_memo[..], &[0; 512]);
+            }
+            None => panic!("Note decryption failed"),
+        }
+
+        // test sender decryption
+        match try_output_recovery_with_ovk(&domain, &fvk_alice.to_ovk(External), &action, &ne.encrypt_outgoing_plaintext(&cmx, &mut rng)) {
+            Some((decrypted_note, decrypted_to, decrypted_memo)) => {
+                assert_eq!(decrypted_note, note);
+                assert_eq!(decrypted_to, recipient);
+                assert_eq!(&decrypted_memo[..], &[0; 512]);
+            }
+            None => panic!("Output recovery failed"),
+        }
+
     }
 }
