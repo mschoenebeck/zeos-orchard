@@ -912,7 +912,7 @@ impl Instance {
 
         instance[RK_X] = *rk.x();
         instance[RK_Y] = *rk.y();
-        instance[NFT] = vesta::Scalar::from(u64::from(self.nft));
+        instance[NFT] = vesta::Scalar::from(self.nft);
         instance[B_D1] = vesta::Scalar::from(self.b_d1.inner());
         instance[B_D2] = vesta::Scalar::from(self.b_d2.inner());
         instance[B_SC] = vesta::Scalar::from(self.b_sc.inner());
@@ -1019,7 +1019,7 @@ mod tests {
     fn round_trip() {
         let mut rng = OsRng;
 
-        let (circuits, instances): (Vec<_>, Vec<_>) = iter::once(())
+        let (circuits, instances): (Vec<_>, Vec<_>) = iter::once(())//iter::once(()).chain(iter::once(()))
             .map(|()| generate_circuit_instance(&mut rng))
             .unzip();
         

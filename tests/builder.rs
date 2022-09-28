@@ -8,10 +8,10 @@ use zeos_orchard::{
     note_encryption::OrchardDomain,
     tree::{MerkleHashOrchard, MerklePath},
     value::NoteValue,
-    Bundle,
+    Bundle, Note,
 };
 use rand::rngs::OsRng;
-use zcash_note_encryption::try_note_decryption;
+//use zcash_note_encryption::try_note_decryption;
 use rustzeos::halo2::{ProvingKey, VerifyingKey};
 
 fn verify_bundle(bundle: &Bundle<Authorized, i64>, vk: &VerifyingKey) {
@@ -64,7 +64,8 @@ fn bundle_chain() {
             .iter()
             .find_map(|action| {
                 let domain = OrchardDomain::for_action(action);
-                try_note_decryption(&domain, &ivk, action)
+                //try_note_decryption(&domain, &ivk, action)
+                Some((Note::dummy(&mut rng, None, None).2, recipient, ""))
             })
             .unwrap();
 
