@@ -898,7 +898,7 @@ impl Instance {
         }
     }
 
-    fn to_halo2_instance(&self) -> [[vesta::Scalar; 11]; 1] {
+    pub fn to_halo2_instance(&self) -> [[vesta::Scalar; 11]; 1] {
         let mut instance = [vesta::Scalar::zero(); 11];
 
         instance[ANCHOR] = self.anchor.inner();
@@ -963,8 +963,8 @@ mod tests {
         let alpha = pallas::Scalar::random(&mut rng);
         let rk = ak.randomize(&alpha);
 
-        let note_b = Note::new(sender_address, NoteValue::from_raw(3), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng);
-        let note_c = Note::new(sender_address, NoteValue::from_raw(4), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng);
+        let note_b = Note::new(sender_address, NoteValue::from_raw(3), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
+        let note_c = Note::new(sender_address, NoteValue::from_raw(4), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
 
         let path = MerklePath::dummy(&mut rng);
         let anchor = path.root(note_a.commitment().into());

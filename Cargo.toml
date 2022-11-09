@@ -78,7 +78,7 @@ bench = false
 [features]
 dev-graph = ["halo2_proofs/dev-graph", "plotters"]
 test-dependencies = ["proptest"]
-# mschoenebeck: zcash_note_encryption features
+# mschoenebeck: zcash_note_encryption features (copied from corresponding Cargo.toml)
 alloc = []
 default = ["alloc"]
 pre-zip-212 = []

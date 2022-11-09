@@ -1053,6 +1053,7 @@ mod tests {
                 NoteValue::from_raw(0), // TODO
                 rho,
                 RandomSeed::from_bytes(tv.note_rseed, &rho).unwrap(),
+                [0; 512]
             );
 
             let cmx: ExtractedNoteCommitment = note.commitment().into();

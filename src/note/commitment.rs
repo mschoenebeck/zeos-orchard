@@ -70,6 +70,12 @@ impl NoteCommitment {
 #[derive(Copy, Clone, Debug)]
 pub struct ExtractedNoteCommitment(pub(super) pallas::Base);
 
+impl From<pallas::Base> for ExtractedNoteCommitment {
+    fn from(field: pallas::Base) -> ExtractedNoteCommitment {
+        ExtractedNoteCommitment(field)
+    }
+}
+
 impl ExtractedNoteCommitment {
     /// Deserialize the extracted note commitment from a byte array.
     ///

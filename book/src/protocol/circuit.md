@@ -130,8 +130,8 @@ $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \hline
 Private Action & \mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & \mathsf{C}_{d1} & \mathsf{CM_B} & \mathsf{CM}_C & Private Inputs \\\hline
-MINTFT/BURNAUTH & 0 & 0 & 0 & 0 & 0 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
-MINTNFT & 0 & 0 & 0 & 0 & 1 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
+MINTFT & 0 & 0 & 0 & 0 & 0 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
+MINTNFT/BURNAUTH & 0 & 0 & 0 & 0 & 1 & val & sym & sc & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = 0, \mathsf{d1}_c = 0, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline
 TRANSFERFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c \\\hline
 TRANSFERNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & 0 & \mathsf{d1}_a = \mathsf{d1}_b,  \mathsf{d1}_c = 0 \\\hline
 BURNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & val & sym & sc & 0 & 0 & \mathsf{cm}_c & \mathsf{d1}_a = \mathsf{d1}_b + \mathsf{d1}_c, \mathsf{d1}_b = val, \mathsf{d2}_b = sym, \mathsf{sc}_b = sc \\\hline

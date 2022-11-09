@@ -11,6 +11,7 @@ use crate::{
     spec::{to_base, to_scalar, NonZeroPallasScalar, PrfExpand},
     value::NoteValue,
     Address,
+    note_encryption::ENC_CIPHERTEXT_SIZE
 };
 
 pub(crate) mod commitment;
@@ -101,6 +102,8 @@ pub struct Note {
     rho: Nullifier,
     /// The seed randomness for various note components.
     rseed: RandomSeed,
+    /// The 512 bytes memo field
+    memo: [u8; 512],
 }
 
 impl PartialEq for Note {
@@ -122,6 +125,7 @@ impl Note {
         nft: NoteValue,
         rho: Nullifier,
         rseed: RandomSeed,
+        memo: [u8; 512]
     ) -> Self {
         Note {
             recipient,
@@ -131,6 +135,7 @@ impl Note {
             nft,
             rho,
             rseed,
+            memo
         }
     }
 
@@ -147,6 +152,7 @@ impl Note {
         nft: NoteValue,
         rho: Nullifier,
         mut rng: impl RngCore,
+        memo: [u8; 512]
     ) -> Self {
         loop {
             let note = Note {
@@ -157,6 +163,7 @@ impl Note {
                 nft,
                 rho,
                 rseed: RandomSeed::random(&mut rng, &rho),
+                memo
             };
             if note.commitment_inner().is_some().into() {
                 break note;
@@ -186,6 +193,7 @@ impl Note {
             NoteValue::zero(),
             rho.unwrap_or_else(|| Nullifier::dummy(rng)),
             rng,
+            [0; 512]
         );
 
         (sk, fvk, note)
@@ -229,6 +237,11 @@ impl Note {
     /// Returns rho of this note.
     pub fn rho(&self) -> Nullifier {
         self.rho
+    }
+
+    /// Returns memo of this note.
+    pub fn memo(&self) -> [u8; 512] {
+        self.memo
     }
 
     /// Derives the commitment to this note.
@@ -283,7 +296,7 @@ pub struct TransmittedNoteCiphertext {
     /// The serialization of the ephemeral public key
     pub epk_bytes: [u8; 32],
     /// The encrypted note ciphertext
-    pub enc_ciphertext: [u8; 604],
+    pub enc_ciphertext: [u8; ENC_CIPHERTEXT_SIZE],
     /// An encrypted value that allows the holder of the outgoing cipher
     /// key for the note to recover the note plaintext.
     pub out_ciphertext: [u8; 80],
@@ -333,6 +346,7 @@ pub mod testing {
                 nft: NoteValue::from_raw(0),
                 rho,
                 rseed,
+                memo: [0; 512]
             }
         }
     }

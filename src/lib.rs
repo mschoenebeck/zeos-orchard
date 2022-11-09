@@ -18,7 +18,6 @@
 
 mod action;
 mod address;
-pub mod builder;
 pub mod bundle;
 pub mod circuit;
 mod constants;
@@ -37,6 +36,5 @@ mod test_vectors;
 pub use action::Action;
 pub use address::Address;
 pub use bundle::Bundle;
-//pub use circuit::Proof;
 pub use note::Note;
 pub use tree::Anchor;

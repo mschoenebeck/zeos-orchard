@@ -1,206 +1,226 @@
-use memuse::DynamicUsage;
-
 use crate::{
-    note::{ExtractedNoteCommitment, Nullifier, TransmittedNoteCiphertext},
-    primitives::redpallas::{self, SpendAuth},
-    value::ValueCommitment,
+    tree::MerklePath,
+    note::{Note, ExtractedNoteCommitment, Nullifier, TransmittedNoteCiphertext, NoteCommitment},
+    primitives::redpallas::{self, SpendAuth, VerificationKey},
+    value::NoteValue, keys::{FullViewingKey, SpendValidatingKey}, circuit::Instance, Anchor, note_encryption::NoteEncryption,
+    keys::Scope::External,
+    note_encryption::OrchardDomain
 };
+use pasta_curves::pallas;
+use rand::{rngs::OsRng, RngCore};
+use ff::Field;
+
+// ZEOS action types (must equal enum values in zeosio.hpp)
+pub const ZA_DUMMY: u64         = 0xDEADBEEFDEADBEEF;   // dummy action that indicates zactions to be validated/executed
+pub const ZA_NULL: u64          = 0x0;                  // NULL OP - do nothing (verify proof only)
+pub const ZA_MINTFT: u64        = 0x1;
+pub const ZA_MINTNFT: u64       = 0x2;
+pub const ZA_MINTAUTH: u64      = 0x3;
+pub const ZA_TRANSFERFT: u64    = 0x4;
+pub const ZA_TRANSFERNFT: u64   = 0x5;
+pub const ZA_BURNFT: u64        = 0x6;
+pub const ZA_BURNFT2: u64       = 0x7;
+pub const ZA_BURNNFT: u64       = 0x8;
+pub const ZA_BURNAUTH: u64      = 0x9;
+
+// ZEOS ZAction (See equivalent struct 'zaction' in zeosio.hpp)
+#[derive(Debug)]
+pub struct ZAction
+{
+    za_type: u64,
+    ins: Instance,
+    memo: String
+}
+
+impl ZAction
+{
+    /// Constructs an `Action` from its constituent parts.
+    pub fn from_parts(za_type: u64, ins: Instance, memo: String) -> Self
+    {
+        ZAction{
+            za_type,
+            ins,
+            memo
+        }
+    }
+
+    /// Returns the instance (aka public inputs) of this zaction
+    pub fn instance(&self) -> Instance
+    {
+        self.ins.clone()
+    }
+}
 
 /// An action applied to the global ledger.
 ///
-/// Externally, this both creates a note (adding a commitment to the global ledger),
-/// and consumes some note created prior to this action (adding a nullifier to the
-/// global ledger).
-///
-/// Internally, this may both consume a note and create a note, or it may do only one of
-/// the two. TODO: Determine which is more efficient (circuit size vs bundle size).
+/// ...
 #[derive(Debug, Clone)]
-pub struct Action<A> {
-    /// The nullifier of the note being spent.
-    nf: Nullifier,
-    /// The randomized verification key for the note being spent.
-    rk: redpallas::VerificationKey<SpendAuth>,
-    /// A commitment to the new note being created.
-    cmx: ExtractedNoteCommitment,
-    /// The transmitted note ciphertext.
-    encrypted_note: TransmittedNoteCiphertext,
-    /// A commitment to the net value created or consumed by this action.
-    cv_net: ValueCommitment,
-    /// The authorization for this action.
-    authorization: A,
+pub struct Action
+{
+    za_type: u64,
+    auth_path_a: Option<MerklePath>,
+    fvk_a: Option<FullViewingKey>,
+    alpha_a: pallas::Scalar,
+    note_a: Option<Note>,
+    note_b: Option<Note>,
+    note_c: Option<Note>,
+    memo: String
 }
 
-impl<T> Action<T> {
+impl Action
+{
     /// Constructs an `Action` from its constituent parts.
-    pub fn from_parts(
-        nf: Nullifier,
-        rk: redpallas::VerificationKey<SpendAuth>,
-        cmx: ExtractedNoteCommitment,
-        encrypted_note: TransmittedNoteCiphertext,
-        cv_net: ValueCommitment,
-        authorization: T,
+    pub fn from_parts<R: RngCore>(
+        za_type: u64,
+        auth_path_a: Option<MerklePath>,
+        fvk_a: Option<FullViewingKey>,
+        note_a: Option<Note>,
+        note_b: Option<Note>,
+        note_c: Option<Note>,
+        memo: String,
+        mut rng: R
     ) -> Self {
+
+        // TODO checks
+
         Action {
-            nf,
-            rk,
-            cmx,
-            encrypted_note,
-            cv_net,
-            authorization,
+            za_type,
+            auth_path_a,
+            fvk_a,
+            alpha_a: pallas::Scalar::random(&mut rng),
+            note_a,
+            note_b,
+            note_c,
+            memo
         }
     }
 
-    /// Returns the nullifier of the note being spent.
-    pub fn nullifier(&self) -> &Nullifier {
-        &self.nf
+    /// Returns the zaction type of this action
+    pub fn za_type(&self) -> u64
+    {
+        self.za_type
     }
 
-    /// Returns the randomized verification key for the note being spent.
-    pub fn rk(&self) -> &redpallas::VerificationKey<SpendAuth> {
-        &self.rk
+    /// Returns auth path of note a
+    pub fn auth_path_a(&self) -> Option<&MerklePath>
+    {
+        self.auth_path_a.as_ref()
     }
 
-    /// Returns the commitment to the new note being created.
-    pub fn cmx(&self) -> &ExtractedNoteCommitment {
-        &self.cmx
+    /// Returns full viewing key of note a
+    pub fn fvk_a(&self) -> Option<&FullViewingKey>
+    {
+        self.fvk_a.as_ref()
     }
 
-    /// Returns the encrypted note ciphertext.
-    pub fn encrypted_note(&self) -> &TransmittedNoteCiphertext {
-        &self.encrypted_note
+    /// Returns alpha of note a
+    pub fn alpha_a(&self) -> pallas::Scalar
+    {
+        self.alpha_a
     }
 
-    /// Returns the commitment to the net value created or consumed by this action.
-    pub fn cv_net(&self) -> &ValueCommitment {
-        &self.cv_net
+    /// Returns note a
+    pub fn note_a(&self) -> Option<Note>
+    {
+        self.note_a
     }
 
-    /// Returns the authorization for this action.
-    pub fn authorization(&self) -> &T {
-        &self.authorization
+    /// Returns note b
+    pub fn note_b(&self) -> Option<Note>
+    {
+        self.note_b
     }
 
-    /// Transitions this action from one authorization state to another.
-    pub fn map<U>(self, step: impl FnOnce(T) -> U) -> Action<U> {
-        Action {
-            nf: self.nf,
-            rk: self.rk,
-            cmx: self.cmx,
-            encrypted_note: self.encrypted_note,
-            cv_net: self.cv_net,
-            authorization: step(self.authorization),
+    /// Returns note c
+    pub fn note_c(&self) -> Option<Note>
+    {
+        self.note_c
+    }
+
+    /// returns the corresponding ZAction
+    pub fn zaction(&self) -> ZAction
+    {
+        let mut anchor = Anchor::from(pallas::Base::zero());
+        let mut nf = Nullifier::from(pallas::Base::zero());
+        let mut rk = VerificationKey::dummy();
+        let nft = self.za_type == ZA_MINTNFT || self.za_type == ZA_TRANSFERNFT || self.za_type == ZA_BURNNFT;
+        let mut b_d1 = NoteValue::from_raw(0);
+        let mut b_d2 = NoteValue::from_raw(0);
+        let mut b_sc = NoteValue::from_raw(0);
+        let mut c_d1 = NoteValue::from_raw(0);
+        let mut cmb = ExtractedNoteCommitment::from(pallas::Base::zero());
+        let mut cmc = ExtractedNoteCommitment::from(pallas::Base::zero());
+
+        if self.note_a.is_some()
+        {
+            anchor = self.auth_path_a.as_ref().unwrap().root(self.note_a.unwrap().commitment().into());
+            nf = self.note_a.unwrap().nullifier(&self.fvk_a.as_ref().unwrap());
+            let ak: SpendValidatingKey = self.fvk_a.clone().unwrap().into();
+            rk = ak.randomize(&self.alpha_a);
         }
-    }
-
-    /// Transitions this action from one authorization state to another.
-    pub fn try_map<U, E>(self, step: impl FnOnce(T) -> Result<U, E>) -> Result<Action<U>, E> {
-        Ok(Action {
-            nf: self.nf,
-            rk: self.rk,
-            cmx: self.cmx,
-            encrypted_note: self.encrypted_note,
-            cv_net: self.cv_net,
-            authorization: step(self.authorization)?,
-        })
-    }
-}
-
-impl DynamicUsage for Action<redpallas::Signature<SpendAuth>> {
-    #[inline(always)]
-    fn dynamic_usage(&self) -> usize {
-        0
-    }
-
-    #[inline(always)]
-    fn dynamic_usage_bounds(&self) -> (usize, Option<usize>) {
-        (0, Some(0))
-    }
-}
-
-/// Generators for property testing.
-#[cfg(any(test, feature = "test-dependencies"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "test-dependencies")))]
-pub(crate) mod testing {
-    use rand::{rngs::StdRng, SeedableRng};
-    use reddsa::orchard::SpendAuth;
-
-    use proptest::prelude::*;
-
-    use crate::{
-        note::{
-            commitment::ExtractedNoteCommitment, nullifier::testing::arb_nullifier,
-            testing::arb_note, TransmittedNoteCiphertext,
-        },
-        primitives::redpallas::{
-            self,
-            testing::{arb_spendauth_signing_key, arb_spendauth_verification_key},
-        },
-        value::{NoteValue, ValueCommitTrapdoor, ValueCommitment},
-    };
-
-    use super::Action;
-
-    prop_compose! {
-        /// Generate an action without authorization data.
-        pub fn arb_unauthorized_action(spend_value: NoteValue, output_value: NoteValue)(
-            nf in arb_nullifier(),
-            rk in arb_spendauth_verification_key(),
-            note in arb_note(output_value),
-        ) -> Action<()> {
-            let cmx = ExtractedNoteCommitment::from(note.commitment());
-            let cv_net = ValueCommitment::derive(
-                spend_value - output_value,
-                ValueCommitTrapdoor::zero()
-            );
-            // FIXME: make a real one from the note.
-            let encrypted_note = TransmittedNoteCiphertext {
-                epk_bytes: [0u8; 32],
-                enc_ciphertext: [0u8; 604],
-                out_ciphertext: [0u8; 80]
-            };
-            Action {
-                nf,
-                rk,
-                cmx,
-                encrypted_note,
-                cv_net,
-                authorization: ()
+        if self.note_b.is_some()
+        {
+            if self.za_type != ZA_TRANSFERFT && self.za_type != ZA_TRANSFERNFT
+            {
+                b_d1 = self.note_b.unwrap().d1();
+                b_d2 = self.note_b.unwrap().d2();
+                b_sc = self.note_b.unwrap().sc();
+            }
+            if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT
+            {
+                cmb = self.note_b.unwrap().commitment().into();
             }
         }
-    }
-
-    prop_compose! {
-        /// Generate an action with invalid (random) authorization data.
-        pub fn arb_action(spend_value: NoteValue, output_value: NoteValue)(
-            nf in arb_nullifier(),
-            sk in arb_spendauth_signing_key(),
-            note in arb_note(output_value),
-            rng_seed in prop::array::uniform32(prop::num::u8::ANY),
-            fake_sighash in prop::array::uniform32(prop::num::u8::ANY),
-        ) -> Action<redpallas::Signature<SpendAuth>> {
-            let cmx = ExtractedNoteCommitment::from(note.commitment());
-            let cv_net = ValueCommitment::derive(
-                spend_value - output_value,
-                ValueCommitTrapdoor::zero()
-            );
-
-            // FIXME: make a real one from the note.
-            let encrypted_note = TransmittedNoteCiphertext {
-                epk_bytes: [0u8; 32],
-                enc_ciphertext: [0u8; 604],
-                out_ciphertext: [0u8; 80]
-            };
-
-            let rng = StdRng::from_seed(rng_seed);
-
-            Action {
-                nf,
-                rk: redpallas::VerificationKey::from(&sk),
-                cmx,
-                encrypted_note,
-                cv_net,
-                authorization: sk.sign(rng, &fake_sighash),
+        if self.note_c.is_some()
+        {
+            if self.za_type == ZA_BURNFT2
+            {
+                c_d1 = self.note_c.unwrap().d1();
+            }
+            if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
+            {
+                cmc = self.note_c.unwrap().commitment().into();
             }
         }
+
+        let ins = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc);
+        ZAction::from_parts(self.za_type, ins, self.memo.clone())
+    }
+
+    /// returns the encrypted notes 
+    pub fn encrypted_notes<R: RngCore>(&self, mut rng: R) -> Vec<TransmittedNoteCiphertext>
+    {
+        let mut encrypted_notes = Vec::new();
+        if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT
+        {
+            // encrypt note_b if > 0
+            // if == 0 add dummy note
+            // TODO
+            let ne = NoteEncryption::new(Some(self.fvk_a.as_ref().unwrap().to_ovk(External)), self.note_b.unwrap());
+            let esk = OrchardDomain::derive_esk(&self.note_b.unwrap()).unwrap();
+            let epk = OrchardDomain::ka_derive_public(&self.note_b.unwrap(), &esk);
+            let encrypted_note = TransmittedNoteCiphertext {
+                epk_bytes: epk.to_bytes().0,
+                enc_ciphertext: ne.encrypt_note_plaintext(),
+                out_ciphertext: ne.encrypt_outgoing_plaintext(&mut rng),
+            };
+            encrypted_notes.push(encrypted_note);
+        }
+        if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
+        {
+            // encrypt note_c if > 0
+            // if == 0 add dummy note
+            // TODO
+            let ne = NoteEncryption::new(Some(self.fvk_a.as_ref().unwrap().to_ovk(External)), self.note_c.unwrap());
+            let esk = OrchardDomain::derive_esk(&self.note_c.unwrap()).unwrap();
+            let epk = OrchardDomain::ka_derive_public(&self.note_c.unwrap(), &esk);
+            let encrypted_note = TransmittedNoteCiphertext {
+                epk_bytes: epk.to_bytes().0,
+                enc_ciphertext: ne.encrypt_note_plaintext(),
+                out_ciphertext: ne.encrypt_outgoing_plaintext(&mut rng),
+            };
+            encrypted_notes.push(encrypted_note);
+        }
+        encrypted_notes
     }
 }

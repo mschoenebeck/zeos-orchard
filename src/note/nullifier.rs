@@ -14,6 +14,12 @@ use crate::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nullifier(pub(crate) pallas::Base);
 
+impl From<pallas::Base> for Nullifier {
+    fn from(nullifier_field: pallas::Base) -> Nullifier {
+        Nullifier(nullifier_field)
+    }
+}
+
 impl Nullifier {
     /// Generates a dummy nullifier for use as $\rho$ in dummy spent notes.
     ///
