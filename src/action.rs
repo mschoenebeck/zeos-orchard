@@ -49,6 +49,12 @@ impl ZAction
     {
         self.ins.clone()
     }
+
+    /// Returns the type of this zaction
+    pub fn za_type(&self) -> u64
+    {
+        self.za_type
+    }
 }
 
 /// An action applied to the global ledger.
@@ -58,8 +64,8 @@ impl ZAction
 pub struct Action
 {
     za_type: u64,
+    fvk: FullViewingKey,
     auth_path_a: Option<MerklePath>,
-    fvk_a: Option<FullViewingKey>,
     alpha_a: pallas::Scalar,
     note_a: Option<Note>,
     note_b: Option<Note>,
@@ -72,8 +78,8 @@ impl Action
     /// Constructs an `Action` from its constituent parts.
     pub fn from_parts<R: RngCore>(
         za_type: u64,
+        fvk: FullViewingKey,
         auth_path_a: Option<MerklePath>,
-        fvk_a: Option<FullViewingKey>,
         note_a: Option<Note>,
         note_b: Option<Note>,
         note_c: Option<Note>,
@@ -85,8 +91,8 @@ impl Action
 
         Action {
             za_type,
+            fvk,
             auth_path_a,
-            fvk_a,
             alpha_a: pallas::Scalar::random(&mut rng),
             note_a,
             note_b,
@@ -107,10 +113,10 @@ impl Action
         self.auth_path_a.as_ref()
     }
 
-    /// Returns full viewing key of note a
-    pub fn fvk_a(&self) -> Option<&FullViewingKey>
+    /// Returns full viewing key
+    pub fn fvk(&self) -> FullViewingKey
     {
-        self.fvk_a.as_ref()
+        self.fvk.clone()
     }
 
     /// Returns alpha of note a
@@ -143,7 +149,7 @@ impl Action
         let mut anchor = Anchor::from(pallas::Base::zero());
         let mut nf = Nullifier::from(pallas::Base::zero());
         let mut rk = VerificationKey::dummy();
-        let nft = self.za_type == ZA_MINTNFT || self.za_type == ZA_TRANSFERNFT || self.za_type == ZA_BURNNFT;
+        let nft = self.za_type == ZA_MINTNFT || self.za_type == ZA_TRANSFERNFT || self.za_type == ZA_BURNNFT || self.za_type == ZA_MINTAUTH || self.za_type == ZA_BURNAUTH;
         let mut b_d1 = NoteValue::from_raw(0);
         let mut b_d2 = NoteValue::from_raw(0);
         let mut b_sc = NoteValue::from_raw(0);
@@ -154,8 +160,8 @@ impl Action
         if self.note_a.is_some()
         {
             anchor = self.auth_path_a.as_ref().unwrap().root(self.note_a.unwrap().commitment().into());
-            nf = self.note_a.unwrap().nullifier(&self.fvk_a.as_ref().unwrap());
-            let ak: SpendValidatingKey = self.fvk_a.clone().unwrap().into();
+            nf = self.note_a.unwrap().nullifier(&self.fvk);
+            let ak: SpendValidatingKey = self.fvk.clone().into();
             rk = ak.randomize(&self.alpha_a);
         }
         if self.note_b.is_some()
@@ -191,12 +197,12 @@ impl Action
     pub fn encrypted_notes<R: RngCore>(&self, mut rng: R) -> Vec<TransmittedNoteCiphertext>
     {
         let mut encrypted_notes = Vec::new();
-        if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT
+        if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT && self.za_type != ZA_BURNAUTH
         {
             // encrypt note_b if > 0
             // if == 0 add dummy note
             // TODO
-            let ne = NoteEncryption::new(Some(self.fvk_a.as_ref().unwrap().to_ovk(External)), self.note_b.unwrap());
+            let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_b.unwrap());
             let esk = OrchardDomain::derive_esk(&self.note_b.unwrap()).unwrap();
             let epk = OrchardDomain::ka_derive_public(&self.note_b.unwrap(), &esk);
             let encrypted_note = TransmittedNoteCiphertext {
@@ -211,7 +217,7 @@ impl Action
             // encrypt note_c if > 0
             // if == 0 add dummy note
             // TODO
-            let ne = NoteEncryption::new(Some(self.fvk_a.as_ref().unwrap().to_ovk(External)), self.note_c.unwrap());
+            let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_c.unwrap());
             let esk = OrchardDomain::derive_esk(&self.note_c.unwrap()).unwrap();
             let epk = OrchardDomain::ka_derive_public(&self.note_c.unwrap(), &esk);
             let encrypted_note = TransmittedNoteCiphertext {

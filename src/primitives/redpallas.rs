@@ -7,7 +7,6 @@ use rand::{CryptoRng, RngCore};
 
 pub use reddsa::batch;
 
-#[cfg(test)]
 use rand::rngs::OsRng;
 
 /// A RedPallas signature type.
@@ -113,7 +112,6 @@ impl<T: SigType> Ord for VerificationKey<T> {
 
 impl VerificationKey<SpendAuth> {
     /// Used in the note encryption tests.
-    #[cfg(test)]
     pub(crate) fn dummy() -> Self {
         VerificationKey((&reddsa::SigningKey::new(OsRng)).into())
     }
