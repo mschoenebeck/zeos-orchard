@@ -1,18 +1,15 @@
 //! Structs related to bundles of Orchard actions.
 
 use nonempty::NonEmpty;
-use rand::{RngCore, Rng};
+use rand::RngCore;
 use rustzeos::halo2::{Proof, ProvingKey};
 use crate::{
     action::{Action, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
-    address::Address,
-    circuit::{Instance},// Proof, VerifyingKey},
-    keys::{SpendValidatingKey, IncomingViewingKey, OutgoingViewingKey},
+    circuit::Instance,
+    keys::SpendValidatingKey,
     note::{Note, TransmittedNoteCiphertext},
-    note_encryption::OrchardDomain,
-    primitives::redpallas::{self, Binding, SpendAuth},
-    tree::{Anchor, MerklePath},
-    value::{ValueCommitTrapdoor, ValueCommitment, ValueSum, NoteValue},
+    tree::MerklePath,
+    value::NoteValue,
     circuit::{Circuit, K}
 };
 use halo2_proofs::circuit::Value;
@@ -128,22 +125,19 @@ mod tests
 {
     use nonempty::NonEmpty;
     use rand::rngs::OsRng;
-    use super::{Bundle, Action, ZAction};
+    use super::{Bundle, Action};
     use crate::{
         keys::{
-            DiversifiedTransmissionKey, Diversifier, EphemeralSecretKey, IncomingViewingKey,
-            OutgoingViewingKey, SpendingKey, FullViewingKey, Scope::External
+            SpendingKey, FullViewingKey, Scope::External
         },
         note_encryption::{
-            try_note_decryption, try_output_recovery_with_ovk,
-            EphemeralKeyBytes, OrchardDomain, NoteEncryption
+            try_note_decryption, try_output_recovery_with_ovk
         },
-        note::{Note, Nullifier, RandomSeed, TransmittedNoteCiphertext, ExtractedNoteCommitment},
+        note::{Note, Nullifier},
         value::{NoteValue}, 
         action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNFT2, ZA_BURNNFT, ZA_BURNAUTH},
         tree::MerklePath,
-        circuit::{Circuit, K},
-        address::Address
+        circuit::{Circuit, K}
     };
     use rustzeos::halo2::{VerifyingKey, Instance};
     use halo2_proofs::dev::MockProver;

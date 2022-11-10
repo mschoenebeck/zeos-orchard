@@ -19,17 +19,17 @@
 #![deny(unsafe_code)]
 // TODO: #![deny(missing_docs)]
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+//#[cfg(feature = "alloc")]
+//extern crate alloc;
+//#[cfg(feature = "alloc")]
+//use alloc::vec::Vec;
 
 use core::convert::TryInto;
 
-use chacha20::{
-    cipher::{NewCipher, StreamCipher, StreamCipherSeek},
-    ChaCha20,
-};
+//use chacha20::{
+//    cipher::{NewCipher, StreamCipher, StreamCipherSeek},
+//    ChaCha20,
+//};
 use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,

@@ -1,13 +1,13 @@
 use crate::{
     tree::MerklePath,
-    note::{Note, ExtractedNoteCommitment, Nullifier, TransmittedNoteCiphertext, NoteCommitment},
-    primitives::redpallas::{self, SpendAuth, VerificationKey},
+    note::{Note, ExtractedNoteCommitment, Nullifier, TransmittedNoteCiphertext},
+    primitives::redpallas::VerificationKey,
     value::NoteValue, keys::{FullViewingKey, SpendValidatingKey}, circuit::Instance, Anchor, note_encryption::NoteEncryption,
     keys::Scope::External,
     note_encryption::OrchardDomain
 };
 use pasta_curves::pallas;
-use rand::{rngs::OsRng, RngCore};
+use rand::RngCore;
 use ff::Field;
 
 // ZEOS action types (must equal enum values in zeosio.hpp)
