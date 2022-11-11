@@ -34,7 +34,7 @@ const ZIP32_PURPOSE: u32 = 32;
 /// $\mathsf{sk}$ as defined in [Zcash Protocol Spec § 4.2.3: Orchard Key Components][orchardkeycomponents].
 ///
 /// [orchardkeycomponents]: https://zips.z.cash/protocol/nu5.pdf#orchardkeycomponents
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct SpendingKey([u8; 32]);
 
 impl ConstantTimeEq for SpendingKey {
