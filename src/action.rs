@@ -9,6 +9,9 @@ use crate::{
 use pasta_curves::pallas;
 use rand::RngCore;
 use ff::Field;
+use group::GroupEncoding;
+use group::Curve;
+use pasta_curves::arithmetic::CurveAffine;
 
 // ZEOS action types (must equal enum values in zeosio.hpp)
 pub const ZA_DUMMY: u64         = 0xDEADBEEFDEADBEEF;   // dummy action that indicates zactions to be validated/executed
@@ -55,13 +58,61 @@ impl ZAction
     {
         self.za_type
     }
+
+    /// serialize EOS
+    pub fn serialize_eos(&self) -> String
+    {
+        let mut res = String::from(hex::encode(self.za_type.to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.anchor.inner().0[0].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.anchor.inner().0[1].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.anchor.inner().0[2].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.anchor.inner().0[3].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.nf.inner().0[0].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.nf.inner().0[1].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.nf.inner().0[2].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.nf.inner().0[3].to_le_bytes()));
+        let rk = pallas::Point::from_bytes(&self.ins.rk.clone().into())
+            .unwrap()
+            .to_affine()
+            .coordinates()
+            .unwrap();
+        let x = rk.x();
+        let y = rk.y();
+        res.push_str(&hex::encode(x.0[0].to_le_bytes()));
+        res.push_str(&hex::encode(x.0[1].to_le_bytes()));
+        res.push_str(&hex::encode(x.0[2].to_le_bytes()));
+        res.push_str(&hex::encode(x.0[3].to_le_bytes()));
+        res.push_str(&hex::encode(y.0[0].to_le_bytes()));
+        res.push_str(&hex::encode(y.0[1].to_le_bytes()));
+        res.push_str(&hex::encode(y.0[2].to_le_bytes()));
+        res.push_str(&hex::encode(y.0[3].to_le_bytes()));
+        res.push_str(if self.ins.nft {"01"} else {"00"});
+        res.push_str(&hex::encode(self.ins.b_d1.inner().to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.b_d2.inner().to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.b_sc.inner().to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.c_d1.inner().to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmb.inner().0[0].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmb.inner().0[1].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmb.inner().0[2].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmb.inner().0[3].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmc.inner().0[0].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmc.inner().0[1].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmc.inner().0[2].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.cmc.inner().0[3].to_le_bytes()));
+        let memo = if self.memo.len() >= 255 {&self.memo.as_bytes()[0..255]} else {self.memo.as_bytes()};
+        let len = format!("{:02X?}", memo.len());
+        res.push_str(&len);
+        res.push_str(&hex::encode(memo));
+
+        res
+    }
 }
 
 /// An action applied to the global ledger.
 ///
 /// ...
 #[derive(Debug, Clone)]
-pub struct Action
+pub struct RawZAction
 {
     za_type: u64,
     fvk: FullViewingKey,
@@ -73,12 +124,12 @@ pub struct Action
     memo: String
 }
 
-impl Action
+impl RawZAction
 {
-    /// Constructs an `Action` from its constituent parts.
+    /// Constructs a `RawZAction` from its constituent parts.
     pub fn from_parts<R: RngCore>(
         za_type: u64,
-        fvk: FullViewingKey,
+        fvk: &FullViewingKey,
         auth_path_a: Option<MerklePath>,
         note_a: Option<Note>,
         note_b: Option<Note>,
@@ -89,9 +140,9 @@ impl Action
 
         // TODO checks
 
-        Action {
+        RawZAction {
             za_type,
-            fvk,
+            fvk: fvk.clone(),
             auth_path_a,
             alpha_a: pallas::Scalar::random(&mut rng),
             note_a,
@@ -172,6 +223,10 @@ impl Action
                 b_d2 = self.note_b.unwrap().d2();
                 b_sc = self.note_b.unwrap().sc();
             }
+            if self.za_type == ZA_BURNFT || self.za_type == ZA_BURNNFT || self.za_type == ZA_BURNFT2
+            {
+                // TODO: set receiving EOS account name from notes memo field
+            }
             if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT
             {
                 cmb = self.note_b.unwrap().commitment().into();
@@ -181,6 +236,7 @@ impl Action
         {
             if self.za_type == ZA_BURNFT2
             {
+                // TODO: set receiving EOS account from notes memo field
                 c_d1 = self.note_c.unwrap().d1();
             }
             if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
@@ -199,9 +255,7 @@ impl Action
         let mut encrypted_notes = Vec::new();
         if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT && self.za_type != ZA_BURNAUTH
         {
-            // encrypt note_b if > 0
-            // if == 0 add dummy note
-            // TODO
+            // encrypt note_b
             let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_b.unwrap());
             let esk = OrchardDomain::derive_esk(&self.note_b.unwrap()).unwrap();
             let epk = OrchardDomain::ka_derive_public(&self.note_b.unwrap(), &esk);
@@ -214,9 +268,8 @@ impl Action
         }
         if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
         {
-            // encrypt note_c if > 0
-            // if == 0 add dummy note
-            // TODO
+            // encrypt note_c
+            // TODO: if note_c.d1 == 0 add dummy note
             let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_c.unwrap());
             let esk = OrchardDomain::derive_esk(&self.note_c.unwrap()).unwrap();
             let epk = OrchardDomain::ka_derive_public(&self.note_c.unwrap(), &esk);
@@ -228,5 +281,21 @@ impl Action
             encrypted_notes.push(encrypted_note);
         }
         encrypted_notes
+    }
+}
+
+#[cfg(test)]
+mod tests
+{
+    use super::{RawZAction, Note};
+    use crate::OsRng;
+
+    #[test]
+    fn eos_serialization()
+    {
+        let mut rng = OsRng.clone();
+        let (sk, fvk, note) = Note::dummy(&mut rng, None, None);
+        let rza = RawZAction::from_parts(0xDEADBEEFDEADBEEF, &fvk, None, None, Some(note), None, String::from("mschoenebeck"), rng);
+        println!("{}", rza.zaction().serialize_eos());
     }
 }

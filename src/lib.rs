@@ -18,6 +18,7 @@
 
 mod action;
 mod address;
+pub mod builder;
 pub mod bundle;
 pub mod circuit;
 mod constants;
@@ -33,19 +34,23 @@ pub mod zip32;
 #[cfg(test)]
 mod test_vectors;
 
-pub use action::Action;
+pub use action::RawZAction;
+use action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 pub use address::Address;
 pub use bundle::Bundle;
 pub use note::Note;
+use rustzeos::halo2::Proof;
 pub use tree::Anchor;
 
 use note::TransmittedNoteCiphertext;
+use tree::MerklePath;
 use crate::note::{Nullifier, RandomSeed};
 use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
 use crate::keys::SpendingKey;
 use crate::value::NoteValue;
 use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
+use crate::note::NoteCommitment;
 
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
@@ -64,7 +69,7 @@ extern crate serde_derive;
 
 #[wasm_bindgen]
 #[derive(Debug)]
-pub struct JSEncryptedNote
+pub struct EOSEncryptedNote
 {
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
@@ -76,8 +81,23 @@ pub struct JSEncryptedNote
     enc_note: TransmittedNoteCiphertext
 }
 
+impl Serialize for TransmittedNoteCiphertext
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // 8 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("TransmittedNoteCiphertext", 3)?;
+        state.serialize_field("epk_bytes", &&hex::encode(self.epk_bytes))?;
+        state.serialize_field("enc_ciphertext", &hex::encode(self.enc_ciphertext))?;
+        state.serialize_field("out_ciphertext", &hex::encode(self.out_ciphertext))?;
+        state.end()
+    }
+}
+
 #[wasm_bindgen]
-impl JSEncryptedNote
+impl EOSEncryptedNote
 {
     pub fn from_parts(
         block_number: String,
@@ -99,7 +119,7 @@ impl JSEncryptedNote
         let mut out_ciphertext = [0; 80];
         hex::decode_to_slice(out_ciphertext_str, &mut out_ciphertext).expect("Decoding of 'out_ciphertext_str' failed");
 
-        JSEncryptedNote{
+        EOSEncryptedNote{
             block_number,
             leaf_index,
             enc_note: TransmittedNoteCiphertext { epk_bytes, enc_ciphertext, out_ciphertext }
@@ -115,8 +135,8 @@ impl JSEncryptedNote
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JSNote
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EOSNote
 {
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
@@ -335,7 +355,7 @@ impl<'de> Deserialize<'de> for Note
 }
 
 #[wasm_bindgen]
-impl JSNote
+impl EOSNote
 {
     /// create a new note from JS obj with wasm bindings
     pub fn from(obj: JsValue) -> Self
@@ -358,7 +378,7 @@ impl JSNote
 
     pub fn nullifier(&self, js_sk: JsValue) -> String
     {
-        let sk: JSSpendingKey = serde_wasm_bindgen::from_value(js_sk).unwrap();
+        let sk: ZEOSSpendingKey = serde_wasm_bindgen::from_value(js_sk).unwrap();
         let nf = self.note.nullifier(&FullViewingKey::from(&sk.sk));
         let mut res = [0; 32];
         res[0..8].copy_from_slice(&nf.inner().0[0].to_le_bytes());
@@ -369,31 +389,77 @@ impl JSNote
     }
 }
 
-impl JSNote
+impl EOSNote
 {
     pub fn from_parts(bn: u64, li: u64, note: Note) -> Self
     {
-        JSNote { block_number: bn.to_string(), leaf_index: li.to_string(), note }
+        EOSNote { block_number: bn.to_string(), leaf_index: li.to_string(), note }
     }
 }
 
 #[wasm_bindgen]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct JSSpendingKey
+pub struct ZEOSSpendingKey
 {
     /// The actual spending key
     pub(crate) sk: SpendingKey
 }
 
 #[wasm_bindgen]
-impl JSSpendingKey
+impl ZEOSSpendingKey
 {
     /// create new spending key from seed phrase
     pub fn from_seed(seed: String) -> Self
     {
-        JSSpendingKey { sk: SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0).unwrap() }
+        ZEOSSpendingKey { sk: SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0).unwrap() }
     }
 }
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZActionDesc
+{
+    /// ...
+    pub(crate) za_type: u64,
+    pub(crate) to: String, // EOS account for BURN actions or shielded address otherwise
+    pub(crate) d1: u64,
+    pub(crate) d2: u64,
+    pub(crate) sc: u64,
+    pub(crate) memo: String,
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EOSAuthorization
+{
+    pub(crate) actor: String,
+    pub(crate) permission: String,
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EOSAction
+{
+    pub(crate) account: String,
+    pub(crate) name: String,
+    pub(crate) authorization: Vec<EOSAuthorization>,
+    /// JSON string (unpacked EOSAction) or HEX string (packed EOSAction)
+    pub(crate) data: String,
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EOSActionDesc
+{
+    /// ...
+    pub(crate) action: EOSAction,
+
+    /// If this action contains zactions it MUST be wrapped in a step() call. In this case
+    /// all ZActionDescs in this list are parsed, processed and their corresponding ZActions
+    /// are serialized and added to the front of the serialized 'data' String of this EOSAction.
+    pub(crate) zaction_descs: Vec<ZActionDesc>
+}
+
 
 #[wasm_bindgen]
 pub fn test1(js_objects: JsValue) -> String
@@ -402,25 +468,6 @@ pub fn test1(js_objects: JsValue) -> String
     //let elements: Vec<JSSpendingKey> = serde_wasm_bindgen::from_value(js_objects).unwrap();
 
     let mut rng = OsRng.clone();
-    JSNote::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
+    EOSNote::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
 }
 
-#[cfg(test)]
-mod tests
-{
-    use rand::rngs::OsRng;
-    use super::{Note, NoteValue};
-
-    #[test]
-    fn serde_note()
-    {
-        let mut rng = OsRng.clone();
-        let (_, _, n) = Note::dummy(&mut rng, None, Some(NoteValue::from_raw(1844674407370955161)));
-
-        let sn = serde_json::to_string(&n).unwrap();
-        println!("{}", sn);
-        let dsn: Note = serde_json::from_str(&sn).unwrap();
-
-        assert_eq!(dsn, n);
-    }
-}
