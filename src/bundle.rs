@@ -1,10 +1,9 @@
 //! Structs related to bundles of Orchard actions.
 
-use nonempty::NonEmpty;
 use rand::RngCore;
 use rustzeos::halo2::{Proof, ProvingKey};
 use crate::{
-    action::{Action, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
+    action::{RawZAction, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
     circuit::Instance,
     keys::SpendValidatingKey,
     note::{Note, TransmittedNoteCiphertext},
@@ -17,22 +16,23 @@ use halo2_proofs::circuit::Value;
 /// A bundle of actions to be applied to the ledger.
 #[derive(Debug, Clone)]
 pub struct Bundle(
-    /// The list of actions that make up this bundle.
-    NonEmpty<Action>
+    /// The list of raw zactions that make up this bundle.
+    Vec<RawZAction>
 );
 
 impl Bundle
 {
     /// Constructs a `Bundle` from its constituent parts.
     pub fn from_parts(
-        actions: NonEmpty<Action>,
+        actions: Vec<RawZAction>,
     ) -> Self
     {
+        assert!(!actions.is_empty());
         Bundle(actions)
     }
 
     /// Returns the list of actions that make up this bundle.
-    pub fn actions(&self) -> &NonEmpty<Action>
+    pub fn actions(&self) -> &Vec<RawZAction>
     {
         &self.0
     }
@@ -73,6 +73,8 @@ impl Bundle
                 
                 let ak: SpendValidatingKey = fvk.clone().into();
                 let nk = *fvk.nk();
+                // if this fails the spending authority (derived from fvk) for note a is wrong:
+                // note_a's address was not derived from this fvk
                 let rivk = fvk.rivk(fvk.scope_for_address(&note_a.recipient()).unwrap());
                 
 
@@ -123,9 +125,8 @@ impl Bundle
 #[cfg(test)]
 mod tests
 {
-    use nonempty::NonEmpty;
     use rand::rngs::OsRng;
-    use super::{Bundle, Action};
+    use super::{Bundle, RawZAction};
     use crate::{
         keys::{
             SpendingKey, FullViewingKey, Scope::External
@@ -238,33 +239,34 @@ mod tests
         
         // create the 3 private fungible token transfer actions
         let path = MerklePath::dummy(&mut rng);
-        let action1 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note4), 
-                                            Some(note5), 
-                                            "".to_string(), 
-                                            rng);
-        let action2 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note6), 
-                                            Some(note7), 
-                                            "".to_string(), 
-                                            rng);
-        let action3 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),
-                                            Some(path.clone()), 
-                                            Some(note3), 
-                                            Some(note8), 
-                                            Some(note9), 
-                                            "".to_string(), 
-                                            rng);
+        let action1 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note4), 
+            Some(note5), 
+            "".to_string(), 
+            rng);
+        let action2 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note6), 
+            Some(note7), 
+            "".to_string(), 
+            rng);
+        let action3 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note3), 
+            Some(note8), 
+            Some(note9), 
+            "".to_string(), 
+            rng);
         
         // create Bundle and prepare for transaction
-        let mut v = NonEmpty::new(action1);
+        let mut v = Vec::new();
+        v.push(action1);
         v.push(action2);
         v.push(action3);
         let bundle = Bundle::from_parts(v);
@@ -456,81 +458,82 @@ mod tests
         
         // create all the ZEOS actions using a dummy path
         let path = MerklePath::dummy(&mut rng);
-        let action1 = Action::from_parts(ZA_MINTFT, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note1), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action2 = Action::from_parts(ZA_MINTNFT, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note2), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action3 = Action::from_parts(ZA_MINTAUTH, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note3), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action4 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note4), 
-                                            Some(note5), 
-                                            "".to_string(), 
-                                            rng);
-        let action5 = Action::from_parts(ZA_TRANSFERNFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note6), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action6 = Action::from_parts(ZA_BURNFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note7), 
-                                            Some(note8), 
-                                            "".to_string(), 
-                                            rng);
-        let action7 = Action::from_parts(ZA_BURNFT2, 
-                                                 fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note9), 
-                                            Some(note10), 
-                                            "".to_string(), 
-                                            rng);
-        let action8 = Action::from_parts(ZA_BURNNFT,
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note11), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action9 = Action::from_parts(ZA_BURNAUTH,
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note3), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
+        let action1 = RawZAction::from_parts(ZA_MINTFT, 
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note1), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action2 = RawZAction::from_parts(ZA_MINTNFT, 
+            &fvk_alice,  
+            None, 
+            None, 
+            Some(note2), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action3 = RawZAction::from_parts(ZA_MINTAUTH, 
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note3), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action4 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note4), 
+            Some(note5), 
+            "".to_string(), 
+            rng);
+        let action5 = RawZAction::from_parts(ZA_TRANSFERNFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note6), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action6 = RawZAction::from_parts(ZA_BURNFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note7), 
+            Some(note8), 
+            "".to_string(), 
+            rng);
+        let action7 = RawZAction::from_parts(ZA_BURNFT2, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note9), 
+            Some(note10), 
+            "".to_string(), 
+            rng);
+        let action8 = RawZAction::from_parts(ZA_BURNNFT,
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note11), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action9 = RawZAction::from_parts(ZA_BURNAUTH,
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note3), 
+            None, 
+            "".to_string(), 
+            rng);
         
         // create Bundle and prepare for transaction
-        let mut v = NonEmpty::new(action1);
+        let mut v = Vec::new();
+        v.push(action1);
         v.push(action2);
         v.push(action3);
         v.push(action4);

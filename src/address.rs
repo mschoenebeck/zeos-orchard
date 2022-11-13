@@ -4,6 +4,10 @@ use crate::{
     keys::{DiversifiedTransmissionKey, Diversifier},
     spec::{diversify_hash, NonIdentityPallasPoint},
 };
+use rand_core::RngCore;
+use crate::FullViewingKey;
+use crate::SpendingKey;
+use crate::keys::Scope;
 
 /// A shielded payment address.
 ///
@@ -28,6 +32,14 @@ impl Address {
         // modifying internals of encoded address formats. If they do, that can result in
         // lost funds, but we can't defend against that from here.
         Address { d, pk_d }
+    }
+
+    /// creates a dummy address
+    pub fn dummy(rng: &mut impl RngCore) -> Self
+    {
+        let sk = SpendingKey::random(rng);
+        let fvk: FullViewingKey = (&sk).into();
+        fvk.address_at(0u32, Scope::External)
     }
 
     /// returns the diversifier
