@@ -134,7 +134,7 @@ mod tests
         note_encryption::{
             try_note_decryption, try_output_recovery_with_ovk
         },
-        note::{Note, Nullifier},
+        note::{NT_FT, NT_NFT, NT_AT, Note, Nullifier},
         value::{NoteValue}, 
         action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNFT2, ZA_BURNNFT, ZA_BURNAUTH},
         tree::MerklePath,
@@ -159,83 +159,110 @@ mod tests
         let bob = fvk_bob.address_at(0u32, External);
 
         // Alice Note material
-        let note1 = Note::new(alice,
-                                    NoteValue::from_raw(5),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
-        let note2 = Note::new(alice,
-                                    NoteValue::from_raw(3),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
-        let note3 = Note::new(alice,
-                                    NoteValue::from_raw(2),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
+        let note1 = Note::new(
+            NT_FT, 
+            alice,
+            NoteValue::from_raw(5),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
+        let note2 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(3),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
+        let note3 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(2),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
 
         // Alice has 5 + 3 + 2 = 10 and sends 9 (5+3+1) to Bob
         // note1 = note4 + note5 = 5 + 0
-        let note4 = Note::new(bob,
+        let note4 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(5),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [4; 512]);
-        let note5 = Note::new(alice,
+            [4; 512]
+        );
+        let note5 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [5; 512]);
+            [5; 512]
+        );
         // note2 = note6 + note7 = 3 + 0
-        let note6 = Note::new(bob,
+        let note6 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(3),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note2.nullifier(&fvk_alice),
             rng,
-            [6; 512]);
-        let note7 = Note::new(alice,
+            [6; 512]
+        );
+        let note7 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note2.nullifier(&fvk_alice),
             rng,
-            [7; 512]);
+            [7; 512]
+        );
         // note3 = note8 + note9 = 1 + 1
-        let note8 = Note::new(bob,
+        let note8 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(1),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note3.nullifier(&fvk_alice),
             rng,
-            [8; 512]);
-        let note9 = Note::new(alice,
+            [8; 512]
+        );
+        let note9 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(1),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note3.nullifier(&fvk_alice),
             rng,
-            [9; 512]);
+            [9; 512]
+        );
         
         // create the 3 private fungible token transfer actions
         let path = MerklePath::dummy(&mut rng);
@@ -360,101 +387,134 @@ mod tests
 
         // Alice Note material
         // mint ft
-        let note1 = Note::new(alice,
+        let note1 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(5),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // mint nft
-        let note2 = Note::new(alice,
+        let note2 = Note::new(
+            NT_NFT,
+            alice,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // mint auth
-        let note3 = Note::new(alice,
+        let note3 = Note::new(
+            NT_AT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // transfer ft (note1: 5 = 2 + 3)
-        let note4 = Note::new(bob,
+        let note4 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(2),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note5 = Note::new(alice,
+            [0; 512]
+        );
+        let note5 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(3),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // transfer nft (note2)
-        let note6 = Note::new(bob,
+        let note6 = Note::new(
+            NT_NFT,
+            bob,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             note2.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // burn ft (note1: 5 = 2 + 3)
-        let note7 = Note::new(dummy,
+        let note7 = Note::new(
+            NT_FT,
+            dummy,
             NoteValue::from_raw(2),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note8 = Note::new(alice,
+            [0; 512]
+        );
+        let note8 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(3),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // burn ft 2 (note1: 5 = 2 + 3)
-        let note9 = Note::new(dummy,
+        let note9 = Note::new(
+            NT_FT,
+            dummy,
             NoteValue::from_raw(2),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note10 = Note::new(dummy,
+            [0; 512]
+        );
+        let note10 = Note::new(
+            NT_FT,
+            dummy,
             NoteValue::from_raw(3),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // burn nft (note2)
-        let note11 = Note::new(dummy,
+        let note11 = Note::new(
+            NT_NFT,
+            dummy,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             note2.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         
         // create all the ZEOS actions using a dummy path
         let path = MerklePath::dummy(&mut rng);

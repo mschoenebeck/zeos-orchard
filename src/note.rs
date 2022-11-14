@@ -83,9 +83,16 @@ impl RandomSeed {
     }
 }
 
+/// The note types: fungible, non-fungible and auth
+pub const NT_FT: u64    = 0x0;
+pub const NT_NFT: u64   = 0x1;
+pub const NT_AT: u64    = 0x2;
+
 /// A discrete amount of funds received by an address.
 #[derive(Debug, Copy, Clone)]
 pub struct Note {
+    /// The Header field with meta information like type of note.
+    header: u64,
     /// The recipient of the funds.
     recipient: Address,
     /// The value of this note.
@@ -118,6 +125,7 @@ impl Eq for Note {}
 
 impl Note {
     pub(crate) fn from_parts(
+        header: u64,
         recipient: Address,
         d1: NoteValue,
         d2: NoteValue,
@@ -128,6 +136,7 @@ impl Note {
         memo: [u8; 512]
     ) -> Self {
         Note {
+            header,
             recipient,
             d1,
             d2,
@@ -145,6 +154,7 @@ impl Note {
     ///
     /// [orchardsend]: https://zips.z.cash/protocol/nu5.pdf#orchardsend
     pub fn new(
+        header: u64,
         recipient: Address,
         d1: NoteValue,
         d2: NoteValue,
@@ -156,6 +166,7 @@ impl Note {
     ) -> Self {
         loop {
             let note = Note {
+                header,
                 recipient,
                 d1,
                 d2,
@@ -186,6 +197,7 @@ impl Note {
         let recipient = fvk.address_at(0u32, Scope::External);
 
         let note = Note::new(
+            0,
             recipient,
             val.unwrap_or_else(|| NoteValue::zero()),
             NoteValue::zero(),
@@ -197,6 +209,11 @@ impl Note {
         );
 
         (sk, fvk, note)
+    }
+
+    /// Returns the header field of this note.
+    pub fn header(&self) -> u64 {
+        self.header
     }
 
     /// Returns the recipient of this note.
@@ -339,6 +356,7 @@ pub mod testing {
             rseed in arb_rseed(),
         ) -> Note {
             Note {
+                header: 0,
                 recipient,
                 d1,
                 d2: d1,
