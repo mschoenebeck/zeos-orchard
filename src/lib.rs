@@ -65,7 +65,7 @@ extern crate serde_derive;
 
 #[wasm_bindgen]
 #[derive(Debug)]
-pub struct EOSEncryptedNote
+pub struct EOSTransmittedNoteCiphertext
 {
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
@@ -93,7 +93,7 @@ impl Serialize for TransmittedNoteCiphertext
 }
 
 #[wasm_bindgen]
-impl EOSEncryptedNote
+impl EOSTransmittedNoteCiphertext
 {
     pub fn from_parts(
         block_number: String,
@@ -115,7 +115,7 @@ impl EOSEncryptedNote
         let mut out_ciphertext = [0; 80];
         hex::decode_to_slice(out_ciphertext_str, &mut out_ciphertext).expect("Decoding of 'out_ciphertext_str' failed");
 
-        EOSEncryptedNote{
+        EOSTransmittedNoteCiphertext{
             block_number,
             leaf_index,
             enc_note: TransmittedNoteCiphertext { epk_bytes, enc_ciphertext, out_ciphertext }
