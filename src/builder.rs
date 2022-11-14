@@ -355,7 +355,7 @@ pub fn select_auth_note(notes: &mut Vec<EOSNote>, sc: u64, nc: ExtractedNoteComm
 mod tests
 {
     use rand::{rngs::OsRng, seq::SliceRandom};
-    use crate::{note::NT_FT, tree::MerklePath, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
+    use crate::{note::NT_FT, note::NT_AT, tree::MerklePath, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, create_raw_zactions, build_transaction, Note, NoteValue, Address, Nullifier, EOSNote, SpendingKey, EOSAction};
 
     #[test]
@@ -379,7 +379,7 @@ mod tests
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
         let nc = notes[3].note.commitment().into();
 
         let (mut spent_notes, change) = select_fungible_notes(&mut notes, 6, 1, 1).unwrap();
@@ -412,7 +412,7 @@ mod tests
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
         let nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
 
         let sk = SpendingKey::from_zip32_seed(b"miau seed miau 123 Der seed muss lang genug sein...", 0, 0).unwrap();
@@ -467,8 +467,8 @@ mod tests
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        let nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
+        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
 
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
@@ -565,7 +565,7 @@ mod tests
         action_descs.push(ad5);
         action_descs.push(ad6);
 
-        let (proof, actions) = build_transaction(&sk, &mut notes, &action_descs, get_mpath, newstock1dex_auth.to_vec());
+        let (_proof, actions) = build_transaction(&sk, &mut notes, &action_descs, get_mpath, newstock1dex_auth.to_vec());
 
         println!("{}", serde_json::to_string(&actions).unwrap());
 

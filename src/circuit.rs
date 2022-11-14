@@ -947,7 +947,7 @@ mod tests {
     use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey, Instance as ConcreteInstance};
     use crate::{
         keys::SpendValidatingKey,
-        note::{Note, NT_FT, NT_NFT, NT_AT},
+        note::{Note, NT_FT},
         tree::MerklePath,
         value::{NoteValue},
     };

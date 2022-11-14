@@ -35,22 +35,18 @@ pub mod zip32;
 mod test_vectors;
 
 pub use action::RawZAction;
-use action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 pub use address::Address;
 pub use bundle::Bundle;
 pub use note::Note;
-use rustzeos::halo2::Proof;
 pub use tree::Anchor;
 
 use note::TransmittedNoteCiphertext;
-use tree::MerklePath;
 use crate::note::{Nullifier, RandomSeed};
 use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
 use crate::keys::SpendingKey;
 use crate::value::NoteValue;
 use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
-use crate::note::NoteCommitment;
 
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
@@ -154,8 +150,8 @@ impl Serialize for Note
     where
         S: Serializer,
     {
-        // 8 is the number of fields in the struct.
-        let mut state = serializer.serialize_struct("Note", 8)?;
+        // 9 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("Note", 9)?;
         state.serialize_field("header", &self.header().to_string())?;
         state.serialize_field("recipient", &hex::encode(self.recipient().to_raw_address_bytes()))?;
         state.serialize_field("d1", &self.d1().inner().to_string())?;
