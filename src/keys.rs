@@ -964,7 +964,7 @@ mod tests {
         *,
     };
     use crate::{
-        note::{ExtractedNoteCommitment, Nullifier, RandomSeed},
+        note::{NT_FT, ExtractedNoteCommitment, Nullifier, RandomSeed},
         value::NoteValue,
         Note,
     };
@@ -1046,6 +1046,7 @@ mod tests {
 
             let rho = Nullifier::from_bytes(&tv.note_rho).unwrap();
             let note = Note::from_parts(
+                NT_FT, // TODO
                 addr,
                 NoteValue::from_raw(tv.note_v),
                 NoteValue::from_raw(tv.note_v),

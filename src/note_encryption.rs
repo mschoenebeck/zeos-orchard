@@ -42,6 +42,7 @@ use subtle::{Choice, ConstantTimeEq};
 
 /// The size of [`NotePlaintextBytes`].
 pub const NOTE_PLAINTEXT_SIZE: usize = 1 + // version
+    8  + // header
     11 + // diversifier
     8  + // d1
     8  + // d2
@@ -436,22 +437,23 @@ where
     }
 
     // The unwraps below are guaranteed to succeed by the assertion above
-    let diversifier = Diversifier::from_bytes(plaintext[1..12].try_into().unwrap());
-    let d1 = NoteValue::from_bytes(plaintext[12..20].try_into().unwrap());
-    let d2 = NoteValue::from_bytes(plaintext[20..28].try_into().unwrap());
-    let sc = NoteValue::from_bytes(plaintext[28..36].try_into().unwrap());
-    let nft = NoteValue::from_bytes(plaintext[36..44].try_into().unwrap());
-    let rho = Nullifier::from_bytes(plaintext[44..76].try_into().unwrap()).unwrap();
+    let header = u64::from_le_bytes(plaintext[1..9].try_into().unwrap());
+    let diversifier = Diversifier::from_bytes(plaintext[9..20].try_into().unwrap());
+    let d1 = NoteValue::from_bytes(plaintext[20..28].try_into().unwrap());
+    let d2 = NoteValue::from_bytes(plaintext[28..36].try_into().unwrap());
+    let sc = NoteValue::from_bytes(plaintext[36..44].try_into().unwrap());
+    let nft = NoteValue::from_bytes(plaintext[44..52].try_into().unwrap());
+    let rho = Nullifier::from_bytes(plaintext[52..84].try_into().unwrap()).unwrap();
     let rseed = Option::from(RandomSeed::from_bytes(
-        plaintext[76..108].try_into().unwrap(),
+        plaintext[84..116].try_into().unwrap(),
         &rho,
     ))?;
-    let memo = plaintext[108..NOTE_PLAINTEXT_SIZE].try_into().unwrap();
+    let memo = plaintext[116..NOTE_PLAINTEXT_SIZE].try_into().unwrap();
 
     let pk_d = get_validated_pk_d(&diversifier)?;
 
     let recipient = Address::from_parts(diversifier, pk_d);
-    let note = Note::from_parts(recipient, d1, d2, sc, nft, rho, rseed, memo);
+    let note = Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo);
     Some(note)
 }
 
@@ -524,14 +526,15 @@ impl OrchardDomain {
     ) -> NotePlaintextBytes {
         let mut np = [0; NOTE_PLAINTEXT_SIZE];
         np[0] = 0x02;
-        np[1..12].copy_from_slice(note.recipient().diversifier().as_array());
-        np[12..20].copy_from_slice(&note.d1().to_bytes());
-        np[20..28].copy_from_slice(&note.d2().to_bytes());
-        np[28..36].copy_from_slice(&note.sc().to_bytes());
-        np[36..44].copy_from_slice(&note.nft().to_bytes());
-        np[44..76].copy_from_slice(&note.rho().to_bytes());
-        np[76..108].copy_from_slice(note.rseed().as_bytes());
-        np[108..].copy_from_slice(&note.memo());
+        np[1..9].copy_from_slice(&note.header().to_le_bytes());
+        np[9..20].copy_from_slice(note.recipient().diversifier().as_array());
+        np[20..28].copy_from_slice(&note.d1().to_bytes());
+        np[28..36].copy_from_slice(&note.d2().to_bytes());
+        np[36..44].copy_from_slice(&note.sc().to_bytes());
+        np[44..52].copy_from_slice(&note.nft().to_bytes());
+        np[52..84].copy_from_slice(&note.rho().to_bytes());
+        np[84..116].copy_from_slice(note.rseed().as_bytes());
+        np[116..].copy_from_slice(&note.memo());
         NotePlaintextBytes(np)
     }
 
@@ -664,7 +667,7 @@ mod tests {
             DiversifiedTransmissionKey, Diversifier, EphemeralSecretKey, IncomingViewingKey,
             OutgoingViewingKey, SpendingKey, FullViewingKey, Scope::External
         },
-        note::{Nullifier, RandomSeed, TransmittedNoteCiphertext},
+        note::{NT_FT, Nullifier, RandomSeed, TransmittedNoteCiphertext},
         value::{NoteValue},
         Address, Note
     };
@@ -699,7 +702,7 @@ mod tests {
             let nft = NoteValue::from_raw(0);
             let rseed = RandomSeed::from_bytes(tv.rseed, &rho).unwrap();
             let recipient = Address::from_parts(d, pk_d);
-            let note = Note::from_parts(recipient, d1, d2, sc, nft, rho, rseed, tv.memo);
+            let note = Note::from_parts(NT_FT, recipient, d1, d2, sc, nft, rho, rseed, tv.memo);
             //let cmx = ExtractedNoteCommitment::from(note.commitment());
 
             //
@@ -762,14 +765,17 @@ mod tests {
 
         // Note material
         let rho = Nullifier::from_bytes(&[1; 32]).unwrap();
-        let note = Note::new(recipient,
-                                   NoteValue::from_raw(100000),
-                                   NoteValue::from_raw(357812230660),
-                                   NoteValue::from_raw(123456789),
-                                   NoteValue::from_raw(0),
-                                   rho,
-                                   rng,
-                                   [0; 512]);
+        let note = Note::new(
+            NT_FT,
+            recipient,
+            NoteValue::from_raw(100000),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            rho,
+            rng,
+            [0; 512
+        ]);
 
         // the ephermeral key pair which is used for encryption/decryption is derived deterministically from the note
         let esk = OrchardDomain::derive_esk(&note).unwrap();
