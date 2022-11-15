@@ -8,6 +8,7 @@ use rand::{CryptoRng, RngCore};
 pub use reddsa::batch;
 
 use rand::rngs::OsRng;
+use serde::Deserialize;
 
 /// A RedPallas signature type.
 pub trait SigType: reddsa::SigType + private::Sealed {}
@@ -114,6 +115,11 @@ impl VerificationKey<SpendAuth> {
     /// Used in the note encryption tests.
     pub(crate) fn dummy() -> Self {
         VerificationKey((&reddsa::SigningKey::new(OsRng)).into())
+    }
+
+    /// Used in the note encryption tests.
+    pub(crate) fn const_dummy() -> Self {
+        VerificationKey((&reddsa::SigningKey::const_dummy()).into())
     }
 
     /// Randomizes this verification key with the given `randomizer`.
