@@ -8,7 +8,6 @@ use rand::{CryptoRng, RngCore};
 pub use reddsa::batch;
 
 use rand::rngs::OsRng;
-use serde::Deserialize;
 
 /// A RedPallas signature type.
 pub trait SigType: reddsa::SigType + private::Sealed {}

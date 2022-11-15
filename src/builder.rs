@@ -354,6 +354,8 @@ pub fn select_auth_note(notes: &mut Vec<EOSNote>, sc: u64, nc: ExtractedNoteComm
 #[cfg(test)]
 mod tests
 {
+    use std::path;
+
     use rand::{rngs::OsRng, seq::SliceRandom};
     use crate::{note::NT_FT, note::NT_AT, tree::MerklePath, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, create_raw_zactions, build_transaction, Note, NoteValue, Address, Nullifier, EOSNote, SpendingKey, EOSAction};
@@ -469,6 +471,7 @@ mod tests
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
         let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
+        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(357812207620), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
 
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
@@ -482,12 +485,13 @@ mod tests
             }, 
             zaction_descs: Vec::new()
         };
+        
         let ad1 = EOSActionDesc{
             action: EOSAction{
                 account: "eosio.token".to_string(),
                 name: "transfer".to_string(),
                 authorization: newstock1dex_auth.to_vec(),
-                data: "{\"from\":\"newstock1dex\", \"to\":\"thezeostoken\", \"quantity\":\"1.0000 EOS\", \"memo\":\"unit test only\"}".to_string()
+                data: "{\"from\":\"newstock1dex\", \"to\":\"thezeostoken\", \"quantity\":\"1.0000 EOS\", \"memo\":\"kylin test\"}".to_string()
             }, 
             zaction_descs: Vec::new()
         };
@@ -504,11 +508,12 @@ mod tests
                     to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
                     d1: 10000,
                     d2: 357812207620,
-                    sc: 12345,
+                    sc: 6138663591592764928,
                     memo: "This is a test!".to_string()
                 }
             ].to_vec()
         };
+        
         let ad3 = EOSActionDesc{
             action: EOSAction{
                 account: "eosio.token".to_string(),
@@ -555,7 +560,7 @@ mod tests
             }, 
             zaction_descs: Vec::new()
         };
-
+        
         let mut action_descs = Vec::new();
         action_descs.push(ad0);
         action_descs.push(ad1);
@@ -564,11 +569,27 @@ mod tests
         action_descs.push(ad4);
         action_descs.push(ad5);
         action_descs.push(ad6);
+        
+        //use rustzeos::halo2::VerifyingKey;
+        //use crate::circuit::{Circuit, K};
+        //use std::fs::File;
+        //use std::io::prelude::*;
+        //let vk = VerifyingKey::build(Circuit::default(), K);
+        //let mut arr = Vec::new();
+        //vk.serialize(&mut arr);
+        //println!("{}", hex::encode(arr));
+        //let mut file = File::create("vk.txt").unwrap();
+        //write!(file, "{}", hex::encode(arr).to_uppercase());
+        
+        let (proof, actions) = build_transaction(&sk, &mut notes, &action_descs, get_mpath, newstock1dex_auth.to_vec());
 
-        let (_proof, actions) = build_transaction(&sk, &mut notes, &action_descs, get_mpath, newstock1dex_auth.to_vec());
-
+        // print transaction data for manual execution of transactions
         println!("{}", serde_json::to_string(&actions).unwrap());
+        println!("{}", hex::encode(proof.clone().unwrap()));
 
+        //let mut inputs = Vec::new();
+        //hex::decode_to_slice(actions[1].data, &mut inputs);
+        //assert!(zeos_verifier::verify_zeos_proof(proof.unwrap().as_ref(), &inputs, &arr));
     }
 
 }

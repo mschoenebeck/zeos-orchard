@@ -67,6 +67,8 @@ extern crate serde_derive;
 #[derive(Debug)]
 pub struct EOSTransmittedNoteCiphertext
 {
+    /// This notes global ID.
+    id: String, //u64
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
     block_number: String, //u64
@@ -74,7 +76,7 @@ pub struct EOSTransmittedNoteCiphertext
     /// added to the global list of encrypted notes
     leaf_index: String, //u64
     /// The actual encrypted note
-    enc_note: TransmittedNoteCiphertext
+    encrypted_note: TransmittedNoteCiphertext
 }
 
 impl Serialize for TransmittedNoteCiphertext
@@ -96,6 +98,7 @@ impl Serialize for TransmittedNoteCiphertext
 impl EOSTransmittedNoteCiphertext
 {
     pub fn from_parts(
+        id: String,
         block_number: String,
         leaf_index: String,
         epk_bytes_str: String,
@@ -116,9 +119,10 @@ impl EOSTransmittedNoteCiphertext
         hex::decode_to_slice(out_ciphertext_str, &mut out_ciphertext).expect("Decoding of 'out_ciphertext_str' failed");
 
         EOSTransmittedNoteCiphertext{
+            id,
             block_number,
             leaf_index,
-            enc_note: TransmittedNoteCiphertext { epk_bytes, enc_ciphertext, out_ciphertext }
+            encrypted_note: TransmittedNoteCiphertext { epk_bytes, enc_ciphertext, out_ciphertext }
         }
     }
 

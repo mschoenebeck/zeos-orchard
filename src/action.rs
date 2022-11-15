@@ -76,8 +76,8 @@ impl ZAction
             .to_affine()
             .coordinates()
             .unwrap();
-        let x = rk.x();
-        let y = rk.y();
+        let x = *rk.x();
+        let y = *rk.y();
         res.push_str(&hex::encode(x.0[0].to_le_bytes()));
         res.push_str(&hex::encode(x.0[1].to_le_bytes()));
         res.push_str(&hex::encode(x.0[2].to_le_bytes()));
@@ -99,7 +99,7 @@ impl ZAction
         res.push_str(&hex::encode(self.ins.cmc.inner().0[1].to_le_bytes()));
         res.push_str(&hex::encode(self.ins.cmc.inner().0[2].to_le_bytes()));
         res.push_str(&hex::encode(self.ins.cmc.inner().0[3].to_le_bytes()));
-        let memo = if self.memo.len() >= 255 {&self.memo.as_bytes()[0..255]} else {self.memo.as_bytes()};
+        let memo = if self.memo.len() > 255 {&self.memo.as_bytes()[0..255]} else {self.memo.as_bytes()};
         let len = format!("{:02X?}", memo.len());
         res.push_str(&len);
         res.push_str(&hex::encode(memo));
@@ -199,7 +199,7 @@ impl RawZAction
     {
         let mut anchor = Anchor::from(pallas::Base::zero());
         let mut nf = Nullifier::from(pallas::Base::zero());
-        let mut rk = VerificationKey::dummy();
+        let mut rk = VerificationKey::const_dummy();
         let nft = self.za_type == ZA_MINTNFT || self.za_type == ZA_TRANSFERNFT || self.za_type == ZA_BURNNFT || self.za_type == ZA_MINTAUTH || self.za_type == ZA_BURNAUTH;
         let mut b_d1 = NoteValue::from_raw(0);
         let mut b_d2 = NoteValue::from_raw(0);

@@ -126,6 +126,7 @@ impl Bundle
 mod tests
 {
     use rand::rngs::OsRng;
+    use zeos_verifier::verify_zeos_proof;
     use super::{Bundle, RawZAction};
     use crate::{
         keys::{
@@ -390,9 +391,9 @@ mod tests
         let note1 = Note::new(
             NT_FT,
             alice,
-            NoteValue::from_raw(5),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(10000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             Nullifier::dummy(&mut rng),
             rng,
@@ -422,13 +423,13 @@ mod tests
             rng,
             [0; 512]
         );
-        // transfer ft (note1: 5 = 2 + 3)
+        // transfer ft (note1: 10000 = 2000 + 8000)
         let note4 = Note::new(
             NT_FT,
             bob,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
@@ -437,9 +438,9 @@ mod tests
         let note5 = Note::new(
             NT_FT,
             alice,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
@@ -457,13 +458,13 @@ mod tests
             rng,
             [0; 512]
         );
-        // burn ft (note1: 5 = 2 + 3)
+        // burn ft (note1: 10000 = 2000 + 8000)
         let note7 = Note::new(
             NT_FT,
             dummy,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
@@ -472,21 +473,21 @@ mod tests
         let note8 = Note::new(
             NT_FT,
             alice,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
             [0; 512]
         );
-        // burn ft 2 (note1: 5 = 2 + 3)
+        // burn ft 2 (note1: 10000 = 2000 + 8000)
         let note9 = Note::new(
             NT_FT,
             dummy,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
@@ -495,9 +496,9 @@ mod tests
         let note10 = Note::new(
             NT_FT,
             dummy,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(357812207620),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
@@ -609,8 +610,6 @@ mod tests
         assert_eq!(zactions.len(), 9);
         assert_eq!(encrypted_notes.len(), 7);
 
-        //zactions.iter().for_each(|za| println!("{:?}", za));
-
         // mock prover
         for (circuit, instance) in circuits.iter().zip(instances.iter())
         {
@@ -633,6 +632,23 @@ mod tests
         let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
         let vk = VerifyingKey::build(Circuit::default(), K);
         assert!(proof.verify(&vk, &instances).is_ok());
+
+        // verify proof using zeos verifier
+        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32;
+        let mut inputs_str = "".to_string();
+        for za in zactions
+        {
+            if za.za_type() != ZA_MINTAUTH
+            {
+                let za_str: String = za.serialize_eos().chars().skip(16).take(ZI_SIZE*2).collect();
+                inputs_str.push_str(&za_str);
+            }
+        }
+        let mut inputs = vec![0; inputs_str.len()/2];
+        assert!(hex::decode_to_slice(inputs_str, &mut inputs).is_ok());
+        let mut arr = Vec::new();
+        vk.serialize(&mut arr);
+        assert!(verify_zeos_proof(proof.as_ref(), &inputs, &arr));
         
     }
 }

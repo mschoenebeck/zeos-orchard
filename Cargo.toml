@@ -64,6 +64,7 @@ criterion = "0.3"
 halo2_gadgets = { version = "0.2", features = ["test-dependencies"], path = "../halo2/halo2_gadgets" }
 hex = "0.4"
 proptest = "1.0.0"
+zeos_verifier = { version = "0.1.0", path = "../zeos-verifier" }
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.9", features = ["criterion", "flamegraph"] } # MSRV 1.56
