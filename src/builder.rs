@@ -2,7 +2,7 @@
 
 use crate::action::{RawZAction, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 use crate::address::Address;
-use crate::tree::MerklePath;
+use crate::tree::{MerkleHashOrchard, MerklePath};
 use crate::note::{Note, Nullifier, NT_FT, NT_NFT, NT_AT};
 use crate::keys::SpendingKey;
 use crate::value::NoteValue;
@@ -15,14 +15,14 @@ extern crate serde_json;
 
 use rand::rngs::OsRng;
 use rustzeos::halo2::Proof;
-use js_sys::Map;
+use std::collections::HashMap;
 
 /// ...
 pub fn build_transaction(
     sk: &SpendingKey,
     notes: &mut Vec<EOSNote>,
     action_descs: &Vec<EOSActionDesc>,
-    get_mekle_path: fn(u64) -> MerklePath,
+    merkle_path: &mut (u64, &mut HashMap<u64, MerkleHashOrchard>, fn(u64, u64, &mut HashMap<u64, MerkleHashOrchard>) -> MerklePath),
     eos_auth: Vec<EOSAuthorization>
 ) -> (Option<Proof>, Vec<EOSAction>)
 {
@@ -65,7 +65,7 @@ pub fn build_transaction(
         for zad in &action_descs[i].zaction_descs
         {
             // TODO: handle error (None) of create_raw_zactions
-            rzactions_step.extend(create_raw_zactions(sk, notes, zad, get_mekle_path).unwrap());
+            rzactions_step.extend(create_raw_zactions(sk, notes, zad, merkle_path).unwrap());
         }
         // encode the zactions of all raw zactions of this step (including the dummy zaction!) into the EOS actions 'data'
         let mut ser_zactions = format!("{:02X?}", rzactions_step.len() + 1);
@@ -120,7 +120,7 @@ pub fn create_raw_zactions(
     sk: &SpendingKey, 
     notes: &mut Vec<EOSNote>, 
     desc: &ZActionDesc, 
-    get_mekle_path: fn(u64) -> MerklePath
+    merkle_path: &mut (u64, &mut HashMap<u64, MerkleHashOrchard>, fn(u64, u64, &mut HashMap<u64, MerkleHashOrchard>) -> MerklePath)
 ) -> Option<Vec<RawZAction>>
 {
     let mut rng = OsRng.clone();
@@ -228,7 +228,7 @@ pub fn create_raw_zactions(
                         let rza = RawZAction::from_parts(
                             desc.za_type,
                             &fvk,
-                            Some(get_mekle_path(spent_notes[i].leaf_index.parse().unwrap())),
+                            Some(merkle_path.2(spent_notes[i].leaf_index.parse().unwrap(), merkle_path.0, merkle_path.1)),
                             Some(spent_notes[i].note),
                             Some(note_b),
                             Some(note_c),
@@ -274,7 +274,7 @@ pub fn create_raw_zactions(
                     let rza = RawZAction::from_parts(
                         desc.za_type,
                         &fvk,
-                        Some(get_mekle_path(spent_note.leaf_index.parse().unwrap())),
+                        Some(merkle_path.2(spent_note.leaf_index.parse().unwrap(), merkle_path.0, merkle_path.1)),
                         Some(spent_note.note),
                         Some(note_b),
                         None,
@@ -354,10 +354,10 @@ pub fn select_auth_note(notes: &mut Vec<EOSNote>, sc: u64, nc: ExtractedNoteComm
 #[cfg(test)]
 mod tests
 {
-    use std::path;
+    use std::collections::HashMap;
 
     use rand::{rngs::OsRng, seq::SliceRandom};
-    use crate::{note::NT_FT, note::NT_AT, tree::MerklePath, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
+    use crate::{note::NT_FT, note::NT_AT, tree::{MerklePath, MerkleHashOrchard}, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, create_raw_zactions, build_transaction, Note, NoteValue, Address, Nullifier, EOSNote, SpendingKey, EOSAction};
 
     #[test]
@@ -400,7 +400,7 @@ mod tests
         assert_eq!(nft.note.d1().inner(), 1337);
     }
 
-    fn get_mpath(_li: u64) -> MerklePath
+    fn get_mpath(_li: u64, _lc: u64, _nb: &mut HashMap<u64, MerkleHashOrchard>) -> MerklePath
     {
         let mut rng = OsRng.clone();
         MerklePath::dummy(&mut rng)
@@ -428,16 +428,16 @@ mod tests
             sc: 1, 
             memo: String::from("")
         };
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_MINTNFT;
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_MINTAUTH;
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_TRANSFERFT;
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_BURNFT;
         desc.to = String::from("mschoenebeck");
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
 
         let mut desc = crate::ZActionDesc {
             za_type: ZA_TRANSFERNFT, 
@@ -447,13 +447,13 @@ mod tests
             sc: 111, 
             memo: String::from("")
         };
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_BURNNFT;
         desc.to = String::from("mschoenebeck");
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
         desc.za_type = ZA_BURNAUTH;
         desc.to = hex::encode(nc.to_bytes());
-        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, get_mpath).unwrap());
+        println!("{:?}", create_raw_zactions(&sk, &mut notes.clone(), &desc, &mut (0, &mut HashMap::new(), get_mpath)).unwrap());
 
     }
 
@@ -471,7 +471,7 @@ mod tests
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
         notes.push(EOSNote::from_parts(0, 0, Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
         let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
-        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(357812207620), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(EOSNote::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
 
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
@@ -507,7 +507,7 @@ mod tests
                     za_type: ZA_MINTFT,
                     to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
                     d1: 10000,
-                    d2: 357812207620,
+                    d2: 1397703940,
                     sc: 6138663591592764928,
                     memo: "This is a test!".to_string()
                 }
@@ -581,7 +581,13 @@ mod tests
         //let mut file = File::create("vk.txt").unwrap();
         //write!(file, "{}", hex::encode(arr).to_uppercase());
         
-        let (proof, actions) = build_transaction(&sk, &mut notes, &action_descs, get_mpath, newstock1dex_auth.to_vec());
+        let (proof, actions) = build_transaction(
+            &sk,
+            &mut notes,
+            &action_descs,
+            &mut (0, &mut HashMap::new(), get_mpath),
+            newstock1dex_auth.to_vec()
+        );
 
         // print transaction data for manual execution of transactions
         println!("{}", serde_json::to_string(&actions).unwrap());

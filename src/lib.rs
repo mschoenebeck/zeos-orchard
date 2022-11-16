@@ -14,7 +14,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
 //#![deny(missing_docs)]
-#![deny(unsafe_code)]
+//#![deny(unsafe_code)]
 
 mod action;
 mod address;
@@ -41,9 +41,12 @@ pub use note::Note;
 pub use tree::Anchor;
 
 use note::TransmittedNoteCiphertext;
+use tree::{MerkleHashOrchard, MerklePath};
+use pasta_curves::Fp;
 use crate::note::{Nullifier, RandomSeed};
 use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
 use crate::keys::SpendingKey;
+use crate::tree::EMPTY_ROOTS;
 use crate::value::NoteValue;
 use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
@@ -58,7 +61,12 @@ use std::fmt;
 
 use rand::rngs::OsRng;
 
-use js_sys::Map;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Request, RequestInit, RequestMode, Response};
+
+use std::collections::HashMap;
+use crate::constants::MERKLE_DEPTH_ORCHARD;
 
 #[macro_use]
 extern crate serde_derive;
@@ -476,12 +484,144 @@ pub struct EOSActionDesc
 
 
 #[wasm_bindgen]
-pub fn test1(js_objects: JsValue) -> String
+pub async fn test1(_js_objects: JsValue) -> String
 {
     console_error_panic_hook::set_once();
     //let elements: Vec<JSSpendingKey> = serde_wasm_bindgen::from_value(js_objects).unwrap();
-
+    
     let mut rng = OsRng.clone();
     EOSNote::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
 }
 
+pub async fn fetch_merkle_hash(index: u64) -> (u64, MerkleHashOrchard)
+{
+    // prepare POST request to fetch from EOSIO multiindex table
+    let body = format!("{{ \"code\": \"thezeostoken\", \"table\": \"mteosram\", \"scope\": \"thezeostoken\", \"index_position\": \"primary\", \"key_type\": \"uint64_t\", \"lower_bound\": \"{}\", \"upper_bound\": \"{}\" }}", index.to_string(), index.to_string());
+    let mut opts = RequestInit::new();
+    opts.method("POST");
+    opts.mode(RequestMode::Cors);
+    opts.body(Some(&JsValue::from_str(&body)));
+    let url = "https://kylin-dsp-1.liquidapps.io/v1/chain/get_table_rows";
+    let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+    request
+        .headers()
+        .set("Accept", "application/json").unwrap();
+    
+    // send http request using browser window's fetch
+    let window = web_sys::window().unwrap();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+    
+    // `resp_value` is a `Response` object.
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into().unwrap();
+    let str = resp.text()
+        .map(JsFuture::from).unwrap()
+        .await.unwrap()
+        .as_string()
+        .expect("fetch: Response expected `String` after .text()");
+    
+    // str has the following format:
+    // "{\"rows\":[\"0f00000000000000f9ffffff84a9c3cf3e30e5be1bd11110ffffffffffffffffffffffffffffff3f\"],\"more\":false,\"next_key\":\"\"}"
+    // extract serialized node data and parse to (index, MerkleHash) tuple
+    let str: String = str.chars().skip(10).take(40 * 2).collect();
+    let mut arr = [0; 40];
+    assert!(hex::decode_to_slice(str, &mut arr).is_ok());
+    let index = u64::from_le_bytes(arr[0..8].try_into().unwrap());
+    let value = MerkleHashOrchard::from(Fp([
+        u64::from_le_bytes(arr[ 8..16].try_into().unwrap()),
+        u64::from_le_bytes(arr[16..24].try_into().unwrap()),
+        u64::from_le_bytes(arr[24..32].try_into().unwrap()),
+        u64::from_le_bytes(arr[32..40].try_into().unwrap())
+    ]));
+    
+    (index, value)
+}
+
+macro_rules! MT_ARR_LEAF_ROW_OFFSET     { ($d:expr) => { (1 << ($d)) - 1 }; }
+macro_rules! MT_ARR_FULL_TREE_OFFSET    { ($d:expr) => { (1 << (($d) + 1)) - 1 }; }
+macro_rules! MT_NUM_LEAVES              { ($d:expr) => { 1 << ($d) }; }
+pub async fn get_merkle_path(
+    leaf_index: u64,
+    leaf_count: u64,
+    node_buffer: &mut HashMap<u64, MerkleHashOrchard>
+) -> MerklePath
+{
+    // only merkle trees with depth up to 32 are supported by the circuit design
+    assert!(MERKLE_DEPTH_ORCHARD <= 32);
+    // initialize return values: position is the leaf_index in the >local< tree
+    let position = (leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD)) as u32;
+    let mut auth_path = vec![EMPTY_ROOTS[0]; MERKLE_DEPTH_ORCHARD];
+
+    // calculate tree offset
+    let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+    let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+    let mut idx = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + position as u64;
+    let mut last_node_in_row = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_count % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1;
+
+    // walk through the tree (bottom to root)
+    for d in 0..MERKLE_DEPTH_ORCHARD
+    {
+        //let log_str = format!("d: {}, tree_idx: {}, tos: {}, idx: {}, last_node_in_row: {}", d, tree_idx, tos, idx, last_node_in_row);log(&log_str);
+        // if array index of node is uneven it is always the left child
+        let is_left_child = 1 == idx % 2;
+        // determine sister node
+        let sis_idx = if is_left_child { idx + 1 } else { idx - 1 };
+        // add sister node to auth_path
+        let sis_idx_tos = tos + sis_idx;
+        auth_path[d] = if node_buffer.contains_key(&sis_idx_tos) {
+            node_buffer[&sis_idx_tos]
+        } else {
+            // if the sister index is greater than last_node_in_row it is an empty root
+            let (i, v) = if sis_idx > last_node_in_row { 
+                (sis_idx_tos, EMPTY_ROOTS[d]) 
+            } else {
+                fetch_merkle_hash(sis_idx_tos).await
+            };
+            node_buffer.insert(i, v);
+            v
+        };
+        // set idx and last_node_in_row to parent node indices:
+        // left child's array index divided by two (integer division) equals array index of parent node
+        idx = if is_left_child { idx / 2 } else { sis_idx / 2 };
+        last_node_in_row = if 1 == last_node_in_row % 2 { last_node_in_row / 2 } else { (last_node_in_row-1) / 2 };
+    }
+
+    assert_eq!(auth_path.len(), MERKLE_DEPTH_ORCHARD);
+    MerklePath::from_parts(position, auth_path.try_into().unwrap())
+}
+
+#[wasm_bindgen]
+pub async fn test_merkle_hash_fetch(index: String) -> JsValue
+{
+    let mh = fetch_merkle_hash(index.parse::<u64>().unwrap()).await;
+    JsValue::from_str(&hex::encode(mh.1.to_bytes()))
+}
+
+#[wasm_bindgen]
+pub async fn test_merkle_path_fetch(leaf_index: String) -> JsValue
+{
+    let mut nb: HashMap<u64, MerkleHashOrchard> = HashMap::new();
+    let path = get_merkle_path(leaf_index.parse::<u64>().unwrap(), 10, &mut nb).await;
+    let path = get_merkle_path(leaf_index.parse::<u64>().unwrap()+1, 10, &mut nb).await;
+
+    let str = format!("{}, [({:?}), ({:?}), ({:?}), ({:?})]", path.position(), hex::encode(path.auth_path()[0].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[1].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[2].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[3].inner().0[0].to_le_bytes()));
+    JsValue::from_str(&str)
+}
+
+#[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    // The `console.log` is quite polymorphic, so we can bind it with multiple
+    // signatures. Note that we need to use `js_name` to ensure we always call
+    // `log` in JS.
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
+    // Multiple arguments too!
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+}
