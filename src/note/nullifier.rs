@@ -47,11 +47,6 @@ impl Nullifier {
         self.0.to_repr()
     }
 
-    /// mschoenebeck: give access Fp struct
-    pub(crate) fn inner(&self) -> pallas::Base {
-        self.0
-    }
-
     /// $DeriveNullifier$.
     ///
     /// Defined in [Zcash Protocol Spec § 4.16: Note Commitments and Nullifiers][commitmentsandnullifiers].
