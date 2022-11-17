@@ -1,10 +1,9 @@
 //! Structs related to bundles of Orchard actions.
 
-use nonempty::NonEmpty;
 use rand::RngCore;
 use rustzeos::halo2::{Proof, ProvingKey};
 use crate::{
-    action::{Action, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
+    action::{RawZAction, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
     circuit::Instance,
     keys::SpendValidatingKey,
     note::{Note, TransmittedNoteCiphertext},
@@ -17,22 +16,23 @@ use halo2_proofs::circuit::Value;
 /// A bundle of actions to be applied to the ledger.
 #[derive(Debug, Clone)]
 pub struct Bundle(
-    /// The list of actions that make up this bundle.
-    NonEmpty<Action>
+    /// The list of raw zactions that make up this bundle.
+    Vec<RawZAction>
 );
 
 impl Bundle
 {
     /// Constructs a `Bundle` from its constituent parts.
     pub fn from_parts(
-        actions: NonEmpty<Action>,
+        actions: Vec<RawZAction>,
     ) -> Self
     {
+        assert!(!actions.is_empty());
         Bundle(actions)
     }
 
     /// Returns the list of actions that make up this bundle.
-    pub fn actions(&self) -> &NonEmpty<Action>
+    pub fn actions(&self) -> &Vec<RawZAction>
     {
         &self.0
     }
@@ -62,7 +62,8 @@ impl Bundle
             // there is no proof for ZA_MINTAUTH actions
             if a.za_type() != ZA_MINTAUTH
             {
-                instances.push(a.zaction().instance());
+                let ins = a.zaction().instance();
+                instances.push(ins.clone());
 
                 let (_dummy_sk, dummy_fvk, dummy_note) = Note::dummy(&mut rng, None, Some(NoteValue::zero()));
                 let path = a.auth_path_a().get_or_insert(&MerklePath::dummy(&mut rng)).clone();
@@ -73,6 +74,8 @@ impl Bundle
                 
                 let ak: SpendValidatingKey = fvk.clone().into();
                 let nk = *fvk.nk();
+                // if this fails the spending authority (derived from fvk) for note a is wrong:
+                // note_a's address was not derived from this fvk
                 let rivk = fvk.rivk(fvk.scope_for_address(&note_a.recipient()).unwrap());
                 
 
@@ -99,11 +102,13 @@ impl Bundle
                     rho_b: Value::known(note_b.rho()),
                     psi_b: Value::known(note_b.rseed().psi(&note_b.rho())),
                     rcm_b: Value::known(note_b.rseed().rcm(&note_b.rho())),
+                    acc_b: Value::known(ins.accb),
                     g_d_c: Value::known(note_c.recipient().g_d()),
                     pk_d_c: Value::known(*note_c.recipient().pk_d()),
                     d1_c: Value::known(note_c.d1()),
                     psi_c: Value::known(note_c.rseed().psi(&note_c.rho())),
                     rcm_c: Value::known(note_c.rseed().rcm(&note_c.rho())),
+                    acc_c: Value::known(ins.accc),
                 });
             }
         });
@@ -123,9 +128,9 @@ impl Bundle
 #[cfg(test)]
 mod tests
 {
-    use nonempty::NonEmpty;
     use rand::rngs::OsRng;
-    use super::{Bundle, Action};
+    use zeos_verifier::verify_zeos_proof;
+    use super::{Bundle, RawZAction};
     use crate::{
         keys::{
             SpendingKey, FullViewingKey, Scope::External
@@ -133,7 +138,7 @@ mod tests
         note_encryption::{
             try_note_decryption, try_output_recovery_with_ovk
         },
-        note::{Note, Nullifier},
+        note::{NT_FT, NT_NFT, NT_AT, Note, Nullifier},
         value::{NoteValue}, 
         action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNFT2, ZA_BURNNFT, ZA_BURNAUTH},
         tree::MerklePath,
@@ -158,113 +163,141 @@ mod tests
         let bob = fvk_bob.address_at(0u32, External);
 
         // Alice Note material
-        let note1 = Note::new(alice,
-                                    NoteValue::from_raw(5),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
-        let note2 = Note::new(alice,
-                                    NoteValue::from_raw(3),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
-        let note3 = Note::new(alice,
-                                    NoteValue::from_raw(2),
-                                    NoteValue::from_raw(357812230660),
-                                    NoteValue::from_raw(123456789),
-                                    NoteValue::from_raw(0),
-                                    Nullifier::dummy(&mut rng),
-                                    rng,
-                                    [0; 512]);
+        let note1 = Note::new(
+            NT_FT, 
+            alice,
+            NoteValue::from_raw(5),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
+        let note2 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(3),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
+        let note3 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(2),
+            NoteValue::from_raw(357812230660),
+            NoteValue::from_raw(123456789),
+            NoteValue::from_raw(0),
+            Nullifier::dummy(&mut rng),
+            rng,
+            [0; 512]
+        );
 
         // Alice has 5 + 3 + 2 = 10 and sends 9 (5+3+1) to Bob
         // note1 = note4 + note5 = 5 + 0
-        let note4 = Note::new(bob,
+        let note4 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(5),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [4; 512]);
-        let note5 = Note::new(alice,
+            [4; 512]
+        );
+        let note5 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [5; 512]);
+            [5; 512]
+        );
         // note2 = note6 + note7 = 3 + 0
-        let note6 = Note::new(bob,
+        let note6 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(3),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note2.nullifier(&fvk_alice),
             rng,
-            [6; 512]);
-        let note7 = Note::new(alice,
+            [6; 512]
+        );
+        let note7 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note2.nullifier(&fvk_alice),
             rng,
-            [7; 512]);
+            [7; 512]
+        );
         // note3 = note8 + note9 = 1 + 1
-        let note8 = Note::new(bob,
+        let note8 = Note::new(
+            NT_FT,
+            bob,
             NoteValue::from_raw(1),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note3.nullifier(&fvk_alice),
             rng,
-            [8; 512]);
-        let note9 = Note::new(alice,
+            [8; 512]
+        );
+        let note9 = Note::new(
+            NT_FT,
+            alice,
             NoteValue::from_raw(1),
             NoteValue::from_raw(357812230660),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             note3.nullifier(&fvk_alice),
             rng,
-            [9; 512]);
+            [9; 512]
+        );
         
         // create the 3 private fungible token transfer actions
         let path = MerklePath::dummy(&mut rng);
-        let action1 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note4), 
-                                            Some(note5), 
-                                            "".to_string(), 
-                                            rng);
-        let action2 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note6), 
-                                            Some(note7), 
-                                            "".to_string(), 
-                                            rng);
-        let action3 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),
-                                            Some(path.clone()), 
-                                            Some(note3), 
-                                            Some(note8), 
-                                            Some(note9), 
-                                            "".to_string(), 
-                                            rng);
+        let action1 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note4), 
+            Some(note5), 
+            "".to_string(), 
+            rng);
+        let action2 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note6), 
+            Some(note7), 
+            "".to_string(), 
+            rng);
+        let action3 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note3), 
+            Some(note8), 
+            Some(note9), 
+            "".to_string(), 
+            rng);
         
         // create Bundle and prepare for transaction
-        let mut v = NonEmpty::new(action1);
+        let mut v = Vec::new();
+        v.push(action1);
         v.push(action2);
         v.push(action3);
         let bundle = Bundle::from_parts(v);
@@ -358,179 +391,213 @@ mod tests
 
         // Alice Note material
         // mint ft
-        let note1 = Note::new(alice,
-            NoteValue::from_raw(5),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+        let note1 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(10000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // mint nft
-        let note2 = Note::new(alice,
+        let note2 = Note::new(
+            NT_NFT,
+            alice,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // mint auth
-        let note3 = Note::new(alice,
+        let note3 = Note::new(
+            NT_AT,
+            alice,
             NoteValue::from_raw(0),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             Nullifier::dummy(&mut rng),
             rng,
-            [0; 512]);
-        // transfer ft (note1: 5 = 2 + 3)
-        let note4 = Note::new(bob,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        // transfer ft (note1: 10000 = 2000 + 8000)
+        let note4 = Note::new(
+            NT_FT,
+            bob,
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note5 = Note::new(alice,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        let note5 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // transfer nft (note2)
-        let note6 = Note::new(bob,
+        let note6 = Note::new(
+            NT_NFT,
+            bob,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             note2.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        // burn ft (note1: 5 = 2 + 3)
-        let note7 = Note::new(dummy,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        // burn ft (note1: 10000 = 2000 + 8000)
+        let note7 = Note::new(
+            NT_FT,
+            dummy,
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note8 = Note::new(alice,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        let note8 = Note::new(
+            NT_FT,
+            alice,
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        // burn ft 2 (note1: 5 = 2 + 3)
-        let note9 = Note::new(dummy,
-            NoteValue::from_raw(2),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        // burn ft 2 (note1: 10000 = 2000 + 8000)
+        let note9 = Note::new(
+            NT_FT,
+            dummy,
+            NoteValue::from_raw(2000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
-        let note10 = Note::new(dummy,
-            NoteValue::from_raw(3),
-            NoteValue::from_raw(357812230660),
-            NoteValue::from_raw(123456789),
+            [0; 512]
+        );
+        let note10 = Note::new(
+            NT_FT,
+            dummy,
+            NoteValue::from_raw(8000),
+            NoteValue::from_raw(1397703940),
+            NoteValue::from_raw(6138663591592764928),
             NoteValue::from_raw(0),
             note1.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         // burn nft (note2)
-        let note11 = Note::new(dummy,
+        let note11 = Note::new(
+            NT_NFT,
+            dummy,
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(0),
             NoteValue::from_raw(123456789),
             NoteValue::from_raw(1),
             note2.nullifier(&fvk_alice),
             rng,
-            [0; 512]);
+            [0; 512]
+        );
         
         // create all the ZEOS actions using a dummy path
         let path = MerklePath::dummy(&mut rng);
-        let action1 = Action::from_parts(ZA_MINTFT, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note1), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action2 = Action::from_parts(ZA_MINTNFT, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note2), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action3 = Action::from_parts(ZA_MINTAUTH, 
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note3), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action4 = Action::from_parts(ZA_TRANSFERFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note4), 
-                                            Some(note5), 
-                                            "".to_string(), 
-                                            rng);
-        let action5 = Action::from_parts(ZA_TRANSFERNFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note6), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action6 = Action::from_parts(ZA_BURNFT, 
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note7), 
-                                            Some(note8), 
-                                            "".to_string(), 
-                                            rng);
-        let action7 = Action::from_parts(ZA_BURNFT2, 
-                                                 fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note1), 
-                                            Some(note9), 
-                                            Some(note10), 
-                                            "".to_string(), 
-                                            rng);
-        let action8 = Action::from_parts(ZA_BURNNFT,
-                                            fvk_alice.clone(),  
-                                            Some(path.clone()), 
-                                            Some(note2), 
-                                            Some(note11), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
-        let action9 = Action::from_parts(ZA_BURNAUTH,
-                                            fvk_alice.clone(),  
-                                            None, 
-                                            None, 
-                                            Some(note3), 
-                                            None, 
-                                            "".to_string(), 
-                                            rng);
+        let action1 = RawZAction::from_parts(ZA_MINTFT, 
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note1), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action2 = RawZAction::from_parts(ZA_MINTNFT, 
+            &fvk_alice,  
+            None, 
+            None, 
+            Some(note2), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action3 = RawZAction::from_parts(ZA_MINTAUTH, 
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note3), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action4 = RawZAction::from_parts(ZA_TRANSFERFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note4), 
+            Some(note5), 
+            "".to_string(), 
+            rng);
+        let action5 = RawZAction::from_parts(ZA_TRANSFERNFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note6), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action6 = RawZAction::from_parts(ZA_BURNFT, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note7), 
+            Some(note8), 
+            "".to_string(), 
+            rng);
+        let action7 = RawZAction::from_parts(ZA_BURNFT2, 
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note1), 
+            Some(note9), 
+            Some(note10), 
+            "".to_string(), 
+            rng);
+        let action8 = RawZAction::from_parts(ZA_BURNNFT,
+            &fvk_alice,
+            Some(path.clone()), 
+            Some(note2), 
+            Some(note11), 
+            None, 
+            "".to_string(), 
+            rng);
+        let action9 = RawZAction::from_parts(ZA_BURNAUTH,
+            &fvk_alice,
+            None, 
+            None, 
+            Some(note3), 
+            None, 
+            "".to_string(), 
+            rng);
         
         // create Bundle and prepare for transaction
-        let mut v = NonEmpty::new(action1);
+        let mut v = Vec::new();
+        v.push(action1);
         v.push(action2);
         v.push(action3);
         v.push(action4);
@@ -545,8 +612,6 @@ mod tests
         // check bundle parts
         assert_eq!(zactions.len(), 9);
         assert_eq!(encrypted_notes.len(), 7);
-
-        //zactions.iter().for_each(|za| println!("{:?}", za));
 
         // mock prover
         for (circuit, instance) in circuits.iter().zip(instances.iter())
@@ -570,6 +635,23 @@ mod tests
         let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
         let vk = VerifyingKey::build(Circuit::default(), K);
         assert!(proof.verify(&vk, &instances).is_ok());
+
+        // verify proof using zeos verifier
+        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32;
+        let mut inputs_str = "".to_string();
+        for za in zactions
+        {
+            if za.za_type() != ZA_MINTAUTH
+            {
+                let za_str: String = za.serialize_eos().chars().skip(16).take(ZI_SIZE*2).collect();
+                inputs_str.push_str(&za_str);
+            }
+        }
+        let mut inputs = vec![0; inputs_str.len()/2];
+        assert!(hex::decode_to_slice(inputs_str, &mut inputs).is_ok());
+        let mut arr = Vec::new();
+        vk.serialize(&mut arr);
+        assert!(verify_zeos_proof(proof.as_ref(), &inputs, &arr));
         
     }
 }

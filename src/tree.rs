@@ -157,6 +157,12 @@ impl MerklePath {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MerkleHashOrchard(pallas::Base);
 
+impl From<pallas::Base> for MerkleHashOrchard {
+    fn from(field: pallas::Base) -> MerkleHashOrchard {
+        MerkleHashOrchard(field)
+    }
+}
+
 impl MerkleHashOrchard {
     /// Creates an incremental tree leaf digest from the specified
     /// Orchard extracted note commitment.

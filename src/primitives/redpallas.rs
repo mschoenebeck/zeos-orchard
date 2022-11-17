@@ -116,6 +116,11 @@ impl VerificationKey<SpendAuth> {
         VerificationKey((&reddsa::SigningKey::new(OsRng)).into())
     }
 
+    /// Used in the note encryption tests.
+    pub(crate) fn const_dummy() -> Self {
+        VerificationKey((&reddsa::SigningKey::const_dummy()).into())
+    }
+
     /// Randomizes this verification key with the given `randomizer`.
     ///
     /// Randomization is only supported for `SpendAuth` keys.
