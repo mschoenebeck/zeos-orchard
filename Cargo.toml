@@ -54,6 +54,8 @@ serde_derive = "1.0.147"
 serde-wasm-bindgen = "0.4.5"
 wasm-bindgen-futures = "0.4.33"
 web-sys = { version = "0.3.4", features = ['Headers', 'Request', 'RequestInit', 'RequestMode', 'Response', 'Window'] }
+sha256 = "1.1.1"
+bs58 = "0.4.0"
 
 # Logging
 tracing = "0.1"

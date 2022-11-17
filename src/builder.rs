@@ -16,6 +16,7 @@ extern crate serde_json;
 use rand::rngs::OsRng;
 use rustzeos::halo2::Proof;
 use std::collections::HashMap;
+use sha256::digest;
 
 /// ...
 pub fn build_transaction(
@@ -85,7 +86,7 @@ pub fn build_transaction(
 
     // process 'begin' action of privacy sequence
     let ((proof, _, _), _, encrypted_notes) = Bundle::from_parts(raw_zactions).prepare(&mut rng);
-    let mut data_str = String::from("{\"proof\":\"TODO: INSERT PROOF IPFS HASH HERE\",\"notes\":");
+    let mut data_str = format!("{{\"proof\":\"{}\",\"notes\":", get_liquidstorage_uri(hex::encode(proof.as_ref()), true));
     data_str.push_str(&serde_json::to_string(&encrypted_notes).unwrap());
     data_str.push_str(",\"tx\":");
     data_str.push_str(&serde_json::to_string(&list).unwrap());
@@ -351,15 +352,29 @@ pub fn select_auth_note(notes: &mut Vec<EOSNote>, sc: u64, nc: ExtractedNoteComm
     None
 }
 
+/// calculate LiquidStorage URI used for the IPFS addressing of data
+pub fn get_liquidstorage_uri(input: String, short: bool) -> String
+{
+    let protocol_str = if short { "z" } else { "ipfs://z" };
+    format!("{}{}", protocol_str, bs58::encode(hex::decode(format!("{}{}", "01551220", digest(input))).unwrap()).into_string())
+}
+
 #[cfg(test)]
 mod tests
 {
     use std::collections::HashMap;
 
     use rand::{rngs::OsRng, seq::SliceRandom};
-    use crate::{note::NT_FT, note::NT_AT, tree::{MerklePath, MerkleHashOrchard}, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
+    use crate::{note::NT_FT, note::NT_AT, tree::{MerklePath, MerkleHashOrchard}, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc, builder::get_liquidstorage_uri};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, create_raw_zactions, build_transaction, Note, NoteValue, Address, Nullifier, EOSNote, SpendingKey, EOSAction};
     use crate::eos_name_to_value;
+
+    #[test]
+    fn test_liquidstorage_uri()
+    {
+        let val = get_liquidstorage_uri("hello".to_string(), false);
+        assert_eq!(val, "ipfs://zb2rhZfjRh2FHHB2RkHVEvL2vJnCTcu7kwRqgVsf9gpkLgteo");
+    }
 
     #[test]
     fn serde_note()
@@ -491,7 +506,6 @@ mod tests
             }, 
             zaction_descs: Vec::new()
         };
-        
         let ad1 = EOSActionDesc{
             action: EOSAction{
                 account: "eosio.token".to_string(),
@@ -519,7 +533,6 @@ mod tests
                 }
             ].to_vec()
         };
-        
         let ad3 = EOSActionDesc{
             action: EOSAction{
                 account: "eosio.token".to_string(),
@@ -568,13 +581,13 @@ mod tests
         };
         
         let mut action_descs = Vec::new();
-        //action_descs.push(ad0);
+        action_descs.push(ad0);
         action_descs.push(ad1);
         action_descs.push(ad2);
-        //action_descs.push(ad3);
-        //action_descs.push(ad4);
-        //action_descs.push(ad5);
-        //action_descs.push(ad6);
+        action_descs.push(ad3);
+        action_descs.push(ad4);
+        action_descs.push(ad5);
+        action_descs.push(ad6);
         
         //use rustzeos::halo2::VerifyingKey;
         //use crate::circuit::{Circuit, K};
