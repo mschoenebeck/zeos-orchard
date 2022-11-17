@@ -294,7 +294,7 @@ mod tests
     fn eos_serialization()
     {
         let mut rng = OsRng.clone();
-        let (_sk, fvk, note) = Note::dummy(&mut rng, None, None);
+        let (sk, fvk, note) = Note::dummy(&mut rng, None, None);
         let rza = RawZAction::from_parts(0xDEADBEEFDEADBEEF, &fvk, None, None, Some(note), None, String::from("mschoenebeck"), rng);
         println!("{}", rza.zaction().serialize_eos());
     }

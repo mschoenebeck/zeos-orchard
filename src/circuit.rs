@@ -947,7 +947,7 @@ mod tests {
     use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey, Instance as ConcreteInstance};
     use crate::{
         keys::SpendValidatingKey,
-        note::{Note, NT_FT},
+        note::Note,
         tree::MerklePath,
         value::{NoteValue},
     };
@@ -963,8 +963,8 @@ mod tests {
         let alpha = pallas::Scalar::random(&mut rng);
         let rk = ak.randomize(&alpha);
 
-        let note_b = Note::new(NT_FT, sender_address, NoteValue::from_raw(3), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
-        let note_c = Note::new(NT_FT, sender_address, NoteValue::from_raw(4), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
+        let note_b = Note::new(sender_address, NoteValue::from_raw(3), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
+        let note_c = Note::new(sender_address, NoteValue::from_raw(4), NoteValue::zero(), NoteValue::zero(), NoteValue::zero(), nf_a, &mut rng, [0; 512]);
 
         let path = MerklePath::dummy(&mut rng);
         let anchor = path.root(note_a.commitment().into());

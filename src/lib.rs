@@ -35,16 +35,22 @@ pub mod zip32;
 mod test_vectors;
 
 pub use action::RawZAction;
+use action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 pub use address::Address;
 pub use bundle::Bundle;
 pub use note::Note;
+use rustzeos::halo2::Proof;
 pub use tree::Anchor;
 
 use note::TransmittedNoteCiphertext;
+use tree::MerklePath;
 use crate::note::{Nullifier, RandomSeed};
+use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
 use crate::keys::SpendingKey;
 use crate::value::NoteValue;
+use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
+use crate::note::NoteCommitment;
 
 extern crate serde_json;
 
@@ -64,7 +70,7 @@ impl Serialize for TransmittedNoteCiphertext
     where
         S: Serializer,
     {
-        // 3 is the number of fields in the struct.
+        // 8 is the number of fields in the struct.
         let mut state = serializer.serialize_struct("TransmittedNoteCiphertext", 3)?;
         state.serialize_field("epk_bytes", &&hex::encode(self.epk_bytes))?;
         state.serialize_field("enc_ciphertext", &hex::encode(self.enc_ciphertext))?;
@@ -92,9 +98,8 @@ impl Serialize for Note
     where
         S: Serializer,
     {
-        // 9 is the number of fields in the struct.
-        let mut state = serializer.serialize_struct("Note", 9)?;
-        state.serialize_field("header", &self.header().to_string())?;
+        // 8 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("Note", 8)?;
         state.serialize_field("recipient", &hex::encode(self.recipient().to_raw_address_bytes()))?;
         state.serialize_field("d1", &self.d1().inner().to_string())?;
         state.serialize_field("d2", &self.d2().inner().to_string())?;
@@ -113,7 +118,7 @@ impl<'de> Deserialize<'de> for Note
     where
         D: Deserializer<'de>,
     {
-        enum Field { Header, Recipient, D1, D2, Sc, Nft, Rho, Rseed, Memo }
+        enum Field { Recipient, D1, D2, Sc, Nft, Rho, Rseed, Memo }
 
         impl<'de> Deserialize<'de> for Field {
             fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
@@ -126,7 +131,7 @@ impl<'de> Deserialize<'de> for Note
                     type Value = Field;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("`header` or `recipient` or `d1` or `d2` or `sc` or `nft` or `rho` or `rseed` or `memo`")
+                        formatter.write_str("`recipient` or `d1` or `d2` or `sc` or `nft` or `rho` or `rseed` or `memo`")
                     }
 
                     fn visit_str<E>(self, value: &str) -> Result<Field, E>
@@ -134,7 +139,6 @@ impl<'de> Deserialize<'de> for Note
                         E: de::Error,
                     {
                         match value {
-                            "header" => Ok(Field::Header),
                             "recipient" => Ok(Field::Recipient),
                             "d1" => Ok(Field::D1),
                             "d2" => Ok(Field::D2),
@@ -165,47 +169,43 @@ impl<'de> Deserialize<'de> for Note
             where
                 V: SeqAccess<'de>,
             {
-                let header: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let header = header.parse::<u64>().unwrap();
                 let recipient_str: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
                 let mut recipient = [0; 43];
                 assert_eq!(hex::decode_to_slice(recipient_str, &mut recipient), Ok(()));
                 let recipient = Address::from_raw_address_bytes(&recipient).unwrap();
                 let d1: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
                 let d1 = d1.parse::<u64>().unwrap();
                 let d1 = NoteValue::from_raw(d1);
                 let d2: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
                 let d2 = d2.parse::<u64>().unwrap();
                 let d2 = NoteValue::from_raw(d2);
                 let sc: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(4, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
                 let sc = sc.parse::<u64>().unwrap();
                 let sc = NoteValue::from_raw(sc);
                 let nft = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(5, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(4, &self))?;
                 let nft = NoteValue::from_raw(nft);
                 let rho = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(6, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(5, &self))?;
                 let rho = Nullifier::from_bytes(&rho).unwrap();
                 let rseed = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(7, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(6, &self))?;
                 let rseed = RandomSeed::from_bytes(rseed, &rho).unwrap();
                 let memo_str: String = seq.next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(8, &self))?;
+                    .ok_or_else(|| de::Error::invalid_length(7, &self))?;
                 let mut memo = [0; 512];
                 assert_eq!(hex::decode_to_slice(memo_str, &mut memo), Ok(()));
-                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo))
+                Ok(Note::from_parts(recipient, d1, d2, sc, nft, rho, rseed, memo))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Note, V::Error>
             where
                 V: MapAccess<'de>,
             {
-                let mut header = None;
                 let mut recipient_str = None;
                 let mut d1 = None;
                 let mut d2 = None;
@@ -216,12 +216,6 @@ impl<'de> Deserialize<'de> for Note
                 let mut memo_str = None;
                 while let Some(key) = map.next_key()? {
                     match key {
-                        Field::Header => {
-                            if header.is_some() {
-                                return Err(de::Error::duplicate_field("header"));
-                            }
-                            header = Some(map.next_value()?);
-                        }
                         Field::Recipient => {
                             if recipient_str.is_some() {
                                 return Err(de::Error::duplicate_field("recipient"));
@@ -272,8 +266,6 @@ impl<'de> Deserialize<'de> for Note
                         }
                     }
                 }
-                let header: String = header.ok_or_else(|| de::Error::missing_field("header"))?;
-                let header = header.parse::<u64>().unwrap();
                 let recipient_str: String = recipient_str.ok_or_else(|| de::Error::missing_field("recipient"))?;
                 let mut recipient = [0; 43];
                 assert_eq!(hex::decode_to_slice(recipient_str, &mut recipient), Ok(()));
@@ -297,11 +289,11 @@ impl<'de> Deserialize<'de> for Note
                 let mut memo = [0; 512];
                 assert_eq!(hex::decode_to_slice(memo_str, &mut memo), Ok(()));
 
-                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo))
+                Ok(Note::from_parts(recipient, d1, d2, sc, nft, rho, rseed, memo))
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["header", "recipient", "d1", "d2", "sc", "nft", "rho", "rseed", "memo"];
+        const FIELDS: &'static [&'static str] = &["recipient", "d1", "d2", "sc", "nft", "rho", "rseed", "memo"];
         deserializer.deserialize_struct("Note", FIELDS, NoteVisitor)
     }
 }
