@@ -68,6 +68,8 @@ use web_sys::{Request, RequestInit, RequestMode, Response};
 use std::collections::HashMap;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
 
+use std::cmp::min;
+
 #[macro_use]
 extern crate serde_derive;
 
@@ -602,7 +604,6 @@ pub async fn test_merkle_path_fetch(leaf_index: String) -> JsValue
 {
     let mut nb: HashMap<u64, MerkleHashOrchard> = HashMap::new();
     let path = get_merkle_path(leaf_index.parse::<u64>().unwrap(), 10, &mut nb).await;
-    let path = get_merkle_path(leaf_index.parse::<u64>().unwrap()+1, 10, &mut nb).await;
 
     let str = format!("{}, [({:?}), ({:?}), ({:?}), ({:?})]", path.position(), hex::encode(path.auth_path()[0].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[1].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[2].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[3].inner().0[0].to_le_bytes()));
     JsValue::from_str(&str)
@@ -624,4 +625,54 @@ extern "C" {
     // Multiple arguments too!
     #[wasm_bindgen(js_namespace = console, js_name = log)]
     fn log_many(a: &str, b: &str);
+}
+
+pub fn char_to_value(c: u8) -> u8
+{
+    if c == '.' as u8
+    {
+       return 0;
+    }
+    else if  c >= '1' as u8 && c <= '5' as u8 
+    {
+       return (c - '1' as u8) + 1;
+    }
+    else if c >= 'a' as u8 && c <= 'z' as u8 
+    {
+       return (c - 'a' as u8) + 6;
+    }
+    // character is not in allowed character set for names
+    return 0;
+ }
+
+pub fn eos_name_to_value(str: String) -> u64
+{
+    if str.len() > 13
+    {
+        // string is too long to be a valid name
+        return 0;
+    }
+    if str.is_empty()
+    {
+        return 0;
+    }
+    let mut value = 0;
+    let n = min(str.len(), 12);
+    for i in 0..n
+    {
+        value <<= 5;
+        value |= char_to_value(str.as_bytes()[i]) as u64;
+    }
+        value <<= 4 + 5*(12 - n);
+        if str.len() == 13
+        {
+            let v = char_to_value(str.as_bytes()[12]) as u64;
+            if v > 0x0F
+            {
+                // thirteenth character in name cannot be a letter that comes after j
+                return 0;
+            }
+            value |= v;
+        }
+    value
 }

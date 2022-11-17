@@ -62,16 +62,18 @@ pub const K: u32 = 11;
 
 // Absolute offsets for public inputs.
 const ANCHOR: usize = 0;
-const NF: usize = 1;
-const RK_X: usize = 2;
-const RK_Y: usize = 3;
-const NFT: usize = 4;
-const B_D1: usize = 5;
-const B_D2: usize = 6;
-const B_SC: usize = 7;
-const C_D1: usize = 8;
-const CMB: usize = 9;
-const CMC: usize = 10;
+const NF: usize     = 1;
+const RK_X: usize   = 2;
+const RK_Y: usize   = 3;
+const NFT: usize    = 4;
+const B_D1: usize   = 5;
+const B_D2: usize   = 6;
+const B_SC: usize   = 7;
+const C_D1: usize   = 8;
+const CMB: usize    = 9;
+const CMC: usize    = 10;
+const ACCB: usize   = 11;
+const ACCC: usize   = 12;
 
 /// Configuration needed to use the ZEOS Action circuit.
 #[derive(Clone, Debug)]
@@ -119,12 +121,14 @@ pub struct Circuit {
     pub rho_b: Value<Nullifier>,
     pub psi_b: Value<pallas::Base>,
     pub rcm_b: Value<NoteCommitTrapdoor>,
+    pub acc_b: Value<NoteValue>,
     // C
     pub g_d_c: Value<NonIdentityPallasPoint>,
     pub pk_d_c: Value<DiversifiedTransmissionKey>,
     pub d1_c: Value<NoteValue>,
     pub psi_c: Value<pallas::Base>,
     pub rcm_c: Value<NoteCommitTrapdoor>,
+    pub acc_c: Value<NoteValue>,
 }
 
 impl plonk::Circuit<pallas::Base> for Circuit {
@@ -182,9 +186,10 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             let cmc             = meta.query_advice(advices[5], Rotation(2));
             let cm_c            = meta.query_advice(advices[6], Rotation(2));
             let c_d1            = meta.query_advice(advices[7], Rotation(2));
-
-            //let one             = Expression::Constant(pallas::Base::one());
-            //let zero            = Expression::Constant(pallas::Base::zero());
+            let accb            = meta.query_advice(advices[8], Rotation(2));
+            let acc_b           = meta.query_advice(advices[9], Rotation(2));
+            let accc            = meta.query_advice(advices[0], Rotation(3));
+            let acc_c           = meta.query_advice(advices[1], Rotation(3));
 
             Constraints::with_selector(
                 q_orchard,
@@ -248,6 +253,14 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                     (
                         "Either cmc = 0, or cmc = cm_c",
                         cmc.clone() * (cmc - cm_c),
+                    ),
+                    (
+                        "Either acc_b = 0, or acc_b = accb",
+                        acc_b.clone() * (acc_b - accb),
+                    ),
+                    (
+                        "Either acc_c = 0, or acc_c = accc",
+                        acc_c.clone() * (acc_c - accc),
                     ),
                 ],
             )
@@ -730,6 +743,20 @@ impl plonk::Circuit<pallas::Base> for Circuit {
             rcm_c,
         )?;
 
+        // Witness acc_b
+        let acc_b = assign_free_advice(
+            layouter.namespace(|| "witness acc_b"),
+            config.advices[0],
+            self.acc_b,
+        )?;
+
+        // Witness acc_c
+        let acc_c = assign_free_advice(
+            layouter.namespace(|| "witness acc_c"),
+            config.advices[0],
+            self.acc_c,
+        )?;
+
         // Constrain the remaining ZEOS circuit checks.
         layouter.assign_region(
             || "ZEOS circuit checks",
@@ -841,6 +868,24 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                     2,
                 )?;
 
+                region.assign_advice_from_instance(
+                    || "pub input accb",
+                    config.primary,
+                    ACCB,
+                    config.advices[8],
+                    2,
+                )?;
+                acc_b.copy_advice(|| "acc_b", &mut region, config.advices[9], 2)?;
+
+                region.assign_advice_from_instance(
+                    || "pub input accc",
+                    config.primary,
+                    ACCC,
+                    config.advices[0],
+                    3,
+                )?;
+                acc_c.copy_advice(|| "acc_c", &mut region, config.advices[1], 3)?;
+
                 config.q_orchard.enable(&mut region, 0)
             },
         )?;
@@ -862,6 +907,8 @@ pub struct Instance {
     pub c_d1: NoteValue,
     pub cmb: ExtractedNoteCommitment,
     pub cmc: ExtractedNoteCommitment,
+    pub accb: NoteValue,
+    pub accc: NoteValue,
 }
 
 impl Instance {
@@ -883,6 +930,8 @@ impl Instance {
         c_d1: NoteValue,
         cmb: ExtractedNoteCommitment,
         cmc: ExtractedNoteCommitment,
+        accb: NoteValue,
+        accc: NoteValue,
     ) -> Self {
         Instance {
             anchor,
@@ -895,11 +944,13 @@ impl Instance {
             c_d1,
             cmb,
             cmc,
+            accb,
+            accc,
         }
     }
 
-    pub fn to_halo2_instance(&self) -> [[vesta::Scalar; 11]; 1] {
-        let mut instance = [vesta::Scalar::zero(); 11];
+    pub fn to_halo2_instance(&self) -> [[vesta::Scalar; 13]; 1] {
+        let mut instance = [vesta::Scalar::zero(); 13];
 
         instance[ANCHOR] = self.anchor.inner();
         instance[NF] = self.nf.0;
@@ -919,6 +970,8 @@ impl Instance {
         instance[C_D1] = vesta::Scalar::from(self.c_d1.inner());
         instance[CMB] = self.cmb.inner();
         instance[CMC] = self.cmc.inner();
+        instance[ACCB] = vesta::Scalar::from(self.accb.inner());
+        instance[ACCC] = vesta::Scalar::from(self.accc.inner());
 
         [instance]
     }
@@ -944,7 +997,7 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
 
     use super::{Circuit, Instance, K};
-    use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey, Instance as ConcreteInstance};
+    use rustzeos::halo2::{Proof, ProvingKey, VerifyingKey, Instance as ConcreteInstance, serialize_instances};
     use crate::{
         keys::SpendValidatingKey,
         note::{Note, NT_FT},
@@ -993,16 +1046,18 @@ mod tests {
                 rho_b: Value::known(nf_a),
                 psi_b: Value::known(note_b.rseed().psi(&note_b.rho())),
                 rcm_b: Value::known(note_b.rseed().rcm(&note_b.rho())),
+                acc_b: Value::known(NoteValue::from_raw(1337)),
                 g_d_c: Value::known(sender_address.g_d()),
                 pk_d_c: Value::known(*sender_address.pk_d()),
                 d1_c: Value::known(note_c.d1()),
                 psi_c: Value::known(note_c.rseed().psi(&note_c.rho())),
                 rcm_c: Value::known(note_c.rseed().rcm(&note_c.rho())),
+                acc_c: Value::known(NoteValue::from_raw(1337)),
             },
             Instance {
-                anchor: anchor,
+                anchor,
                 nf: nf_a,
-                rk: rk,
+                rk,
                 nft: false,
                 b_d1: NoteValue::from_raw(0),
                 b_d2: NoteValue::from_raw(0),
@@ -1010,6 +1065,8 @@ mod tests {
                 c_d1: NoteValue::from_raw(0),
                 cmb: note_b.commitment().into(),
                 cmc: note_c.commitment().into(),
+                accb: NoteValue::from_raw(1337),
+                accc: NoteValue::from_raw(1337),
             },
         )
     }
@@ -1019,7 +1076,7 @@ mod tests {
     fn round_trip() {
         let mut rng = OsRng;
 
-        let (circuits, instances): (Vec<_>, Vec<_>) = iter::once(())//iter::once(()).chain(iter::once(()))
+        let (circuits, instances): (Vec<_>, Vec<_>) = iter::once(()).chain(iter::once(()))
             .map(|()| generate_circuit_instance(&mut rng))
             .unzip();
         
@@ -1028,6 +1085,11 @@ mod tests {
         // serialize and deserialize vk back and forth
         let mut arr = Vec::new();
         vk.serialize(&mut arr);
+        // code to write serialized vk to file
+        //use std::fs::File;
+        //use std::io::prelude::*;
+        //let mut file = File::create("foo2.txt").unwrap();
+        //file.write_all(hex::encode(&arr).as_bytes()).unwrap();
         let vk = VerifyingKey::deserialize(&mut arr);
 /*
         // Test that the pinned verification key (representing the circuit)
@@ -1072,6 +1134,8 @@ mod tests {
         let pk = ProvingKey::build(Circuit::default(), K);
         let proof = Proof::create(&pk, &circuits, &instances, &mut rng).unwrap();
         let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance_vec()).collect();
+        println!("{}", hex::encode(serialize_instances(&instances)));
+        println!("{}", hex::encode(proof.as_ref()));
         assert!(proof.verify(&vk, &instances).is_ok());
         //assert_eq!(proof.0.len(), expected_proof_size);
     }
@@ -1097,6 +1161,8 @@ mod tests {
             w.write_all(&instance.c_d1.to_bytes())?;
             w.write_all(&instance.cmb.to_bytes())?;
             w.write_all(&instance.cmc.to_bytes())?;
+            w.write_all(&instance.accb.to_bytes())?;
+            w.write_all(&instance.accc.to_bytes())?;
 
             w.write_all(proof.as_ref())?;
             Ok(())
@@ -1133,8 +1199,10 @@ mod tests {
             let c_d1 = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
             let cmb = crate::note::ExtractedNoteCommitment::from_bytes(&read_32_bytes(&mut r)).unwrap();
             let cmc = crate::note::ExtractedNoteCommitment::from_bytes(&read_32_bytes(&mut r)).unwrap();
+            let accb = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
+            let accc = NoteValue::from_bytes(read_8_bytes(&mut r).try_into().unwrap());
             
-            let instance = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc);
+            let instance = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc, accb, accc);
 
             let mut proof_bytes = vec![];
             r.read_to_end(&mut proof_bytes)?;
@@ -1209,11 +1277,13 @@ mod tests {
             rho_b: Value::unknown(),
             psi_b: Value::unknown(),
             rcm_b: Value::unknown(),
+            acc_b: Value::unknown(),
             g_d_c: Value::unknown(),
             pk_d_c: Value::unknown(),
             d1_c: Value::unknown(),
             psi_c: Value::unknown(),
             rcm_c: Value::unknown(),
+            acc_c: Value::unknown(),
         };
         halo2_proofs::dev::CircuitLayout::default()
             .show_labels(false)

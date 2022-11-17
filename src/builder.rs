@@ -9,7 +9,7 @@ use crate::value::NoteValue;
 use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
 use crate::bundle::Bundle;
-use crate::{EOSNote, EOSAction, EOSAuthorization, EOSActionDesc, ZActionDesc};
+use crate::{EOSNote, EOSAction, EOSAuthorization, EOSActionDesc, ZActionDesc, eos_name_to_value};
 
 extern crate serde_json;
 
@@ -69,7 +69,7 @@ pub fn build_transaction(
         }
         // encode the zactions of all raw zactions of this step (including the dummy zaction!) into the EOS actions 'data'
         let mut ser_zactions = format!("{:02X?}", rzactions_step.len() + 1);
-        ser_zactions.push_str("efbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeadde0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        ser_zactions.push_str("efbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeadde000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
         for rza in &rzactions_step
         {
             ser_zactions.push_str(&rza.zaction().serialize_eos());
@@ -199,9 +199,9 @@ pub fn create_raw_zactions(
                     }
                     else
                     {
-                        // in case of burn note_b's memo field contains the receiving EOS account name
+                        // in case of burn note_b's memo field contains the receiving EOS account name's value
                         assert!(desc.to.len() <= 12);
-                        memo_arr[0..desc.to.len()].clone_from_slice(desc.to.as_bytes());
+                        memo_arr[0..8].clone_from_slice(&eos_name_to_value(desc.to.clone()).to_be_bytes());
                     }
                     for i in 0..spent_notes.len()
                     {
@@ -257,9 +257,9 @@ pub fn create_raw_zactions(
                     }
                     else
                     {
-                        // in case of burn note_b's memo field contains the receiving EOS account name
+                        // in case of burn note_b's memo field contains the receiving EOS account name's value
                         assert!(desc.to.len() <= 12);
-                        memo_arr[0..desc.to.len()].clone_from_slice(desc.to.as_bytes());
+                        memo_arr[0..8].clone_from_slice(&eos_name_to_value(desc.to.clone()).to_be_bytes());
                     }
                     let note_b = Note::new(
                         NT_NFT,
@@ -359,6 +359,7 @@ mod tests
     use rand::{rngs::OsRng, seq::SliceRandom};
     use crate::{note::NT_FT, note::NT_AT, tree::{MerklePath, MerkleHashOrchard}, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, EOSAuthorization, EOSActionDesc, ZActionDesc};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, create_raw_zactions, build_transaction, Note, NoteValue, Address, Nullifier, EOSNote, SpendingKey, EOSAction};
+    use crate::eos_name_to_value;
 
     #[test]
     fn serde_note()
@@ -476,6 +477,11 @@ mod tests
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
         
+        assert_eq!(6138663577826885632, eos_name_to_value("eosio".to_string()));
+        assert_eq!(6138663587900751872, eos_name_to_value("eosio.msig".to_string()));
+        assert_eq!(6138663591592764928, eos_name_to_value("eosio.token".to_string()));
+        assert_eq!(10813382581022265600, eos_name_to_value("mschoenebeck".to_string()));
+
         let ad0 = EOSActionDesc{
             action: EOSAction{
                 account: "eosio.token".to_string(),
@@ -562,13 +568,13 @@ mod tests
         };
         
         let mut action_descs = Vec::new();
-        action_descs.push(ad0);
+        //action_descs.push(ad0);
         action_descs.push(ad1);
         action_descs.push(ad2);
-        action_descs.push(ad3);
-        action_descs.push(ad4);
-        action_descs.push(ad5);
-        action_descs.push(ad6);
+        //action_descs.push(ad3);
+        //action_descs.push(ad4);
+        //action_descs.push(ad5);
+        //action_descs.push(ad6);
         
         //use rustzeos::halo2::VerifyingKey;
         //use crate::circuit::{Circuit, K};

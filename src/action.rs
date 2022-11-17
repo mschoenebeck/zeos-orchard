@@ -4,7 +4,7 @@ use crate::{
     primitives::redpallas::VerificationKey,
     value::NoteValue, keys::{FullViewingKey, SpendValidatingKey}, circuit::Instance, Anchor, note_encryption::NoteEncryption,
     keys::Scope::External,
-    note_encryption::OrchardDomain
+    note_encryption::OrchardDomain,
 };
 use pasta_curves::pallas;
 use rand::RngCore;
@@ -99,6 +99,8 @@ impl ZAction
         res.push_str(&hex::encode(self.ins.cmc.inner().0[1].to_le_bytes()));
         res.push_str(&hex::encode(self.ins.cmc.inner().0[2].to_le_bytes()));
         res.push_str(&hex::encode(self.ins.cmc.inner().0[3].to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.accb.inner().to_le_bytes()));
+        res.push_str(&hex::encode(self.ins.accc.inner().to_le_bytes()));
         let memo = if self.memo.len() > 255 {&self.memo.as_bytes()[0..255]} else {self.memo.as_bytes()};
         let len = format!("{:02X?}", memo.len());
         res.push_str(&len);
@@ -207,6 +209,8 @@ impl RawZAction
         let mut c_d1 = NoteValue::from_raw(0);
         let mut cmb = ExtractedNoteCommitment::from(pallas::Base::zero());
         let mut cmc = ExtractedNoteCommitment::from(pallas::Base::zero());
+        let mut accb = NoteValue::from_raw(0);
+        let mut accc = NoteValue::from_raw(0);
 
         if self.note_a.is_some()
         {
@@ -225,7 +229,8 @@ impl RawZAction
             }
             if self.za_type == ZA_BURNFT || self.za_type == ZA_BURNNFT || self.za_type == ZA_BURNFT2
             {
-                // TODO: set receiving EOS account name from notes memo field
+                // set receiving EOS account name from notes memo field
+                accb = NoteValue::from_raw(u64::from_le_bytes(self.note_b.unwrap().memo()[0..8].try_into().unwrap()));
             }
             if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT
             {
@@ -236,7 +241,8 @@ impl RawZAction
         {
             if self.za_type == ZA_BURNFT2
             {
-                // TODO: set receiving EOS account from notes memo field
+                // set receiving EOS account from notes memo field
+                accc = NoteValue::from_raw(u64::from_le_bytes(self.note_c.unwrap().memo()[0..8].try_into().unwrap()));
                 c_d1 = self.note_c.unwrap().d1();
             }
             if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
@@ -245,7 +251,7 @@ impl RawZAction
             }
         }
 
-        let ins = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc);
+        let ins = Instance::from_parts(anchor, nf, rk, nft, b_d1, b_d2, b_sc, c_d1, cmb, cmc, accb, accc);
         ZAction::from_parts(self.za_type, ins, self.memo.clone())
     }
 

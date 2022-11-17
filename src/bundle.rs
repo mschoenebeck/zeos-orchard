@@ -62,7 +62,8 @@ impl Bundle
             // there is no proof for ZA_MINTAUTH actions
             if a.za_type() != ZA_MINTAUTH
             {
-                instances.push(a.zaction().instance());
+                let ins = a.zaction().instance();
+                instances.push(ins.clone());
 
                 let (_dummy_sk, dummy_fvk, dummy_note) = Note::dummy(&mut rng, None, Some(NoteValue::zero()));
                 let path = a.auth_path_a().get_or_insert(&MerklePath::dummy(&mut rng)).clone();
@@ -101,11 +102,13 @@ impl Bundle
                     rho_b: Value::known(note_b.rho()),
                     psi_b: Value::known(note_b.rseed().psi(&note_b.rho())),
                     rcm_b: Value::known(note_b.rseed().rcm(&note_b.rho())),
+                    acc_b: Value::known(ins.accb),
                     g_d_c: Value::known(note_c.recipient().g_d()),
                     pk_d_c: Value::known(*note_c.recipient().pk_d()),
                     d1_c: Value::known(note_c.d1()),
                     psi_c: Value::known(note_c.rseed().psi(&note_c.rho())),
                     rcm_c: Value::known(note_c.rseed().rcm(&note_c.rho())),
+                    acc_c: Value::known(ins.accc),
                 });
             }
         });
