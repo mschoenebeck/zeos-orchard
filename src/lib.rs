@@ -554,36 +554,56 @@ mod string
     }
 }
 
-pub async fn fetch_table_rows(payload: &EOSGetTableRowsPayload) -> EOSGetTableRowsResponse
+pub async fn fetch_table_rows(payload: &mut EOSGetTableRowsPayload) -> EOSGetTableRowsResponse
 {
-    // prepare POST request to fetch from EOSIO multiindex table
-    let mut opts = RequestInit::new();
-    opts.method("POST");
-    opts.mode(RequestMode::Cors);
-    opts.body(Some(&JsValue::from_str(&serde_json::to_string(payload).unwrap())));
+    let mut res = EOSGetTableRowsResponse{
+        rows: Vec::new(),
+        more: false,
+        next_key: 0
+    };
+    loop
+    {
+        // prepare POST request to fetch from EOSIO multiindex table
+        let mut opts = RequestInit::new();
+        opts.method("POST");
+        opts.mode(RequestMode::Cors);
+        opts.body(Some(&JsValue::from_str(&serde_json::to_string(payload).unwrap())));
 
-    let url = "https://kylin-dsp-1.liquidapps.io/v1/chain/get_table_rows";
-    let request = Request::new_with_str_and_init(&url, &opts).unwrap();
-    request
-        .headers()
-        .set("Accept", "application/json").unwrap();
+        let url = "https://kylin-dsp-1.liquidapps.io/v1/chain/get_table_rows";
+        let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+        request
+            .headers()
+            .set("Accept", "application/json").unwrap();
+        
+        // send http request using browser window's fetch
+        let window = web_sys::window().unwrap();
+        let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+
+        // `resp_value` is a `Response` object.
+        assert!(resp_value.is_instance_of::<Response>());
+        let resp: Response = resp_value.dyn_into().unwrap();
+        let str = resp.text()
+            .map(JsFuture::from).unwrap()
+            .await.unwrap()
+            .as_string()
+            .expect("fetch: Response expected `String` after .text()");
+
+        // str has the following format:
+        // {"rows":["", "", ...], "more": false, "next_key": ""}
+        let tmp: EOSGetTableRowsResponse = serde_json::from_str(&str).unwrap();
+        res.rows.extend(tmp.rows);
+
+        // if there's more update payload struct and repeat
+        if tmp.more
+        {
+            payload.lower_bound = tmp.next_key;
+        }
+        else
+        {
+            break;
+        }
+    }
     
-    // send http request using browser window's fetch
-    let window = web_sys::window().unwrap();
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
-
-    // `resp_value` is a `Response` object.
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
-    let str = resp.text()
-        .map(JsFuture::from).unwrap()
-        .await.unwrap()
-        .as_string()
-        .expect("fetch: Response expected `String` after .text()");
-
-    // str has the following format:
-    // {"rows":["", "", ...], "more": false, "next_key": ""}
-    let res: EOSGetTableRowsResponse = serde_json::from_str(&str).unwrap();
     res
 }
 
@@ -604,7 +624,7 @@ pub async fn fetch_merkle_hash(index: u64) -> Option<(u64, MerkleHashOrchard)>
         show_payer: false
     };
     
-    let res = fetch_table_rows(&payload).await;
+    let res = fetch_table_rows(&mut payload.clone()).await;
     if res.rows.len() == 0
     {
         return None;
@@ -673,6 +693,28 @@ pub async fn get_merkle_path(
 
     assert_eq!(auth_path.len(), MERKLE_DEPTH_ORCHARD);
     MerklePath::from_parts(position, auth_path.try_into().unwrap())
+}
+
+#[wasm_bindgen]
+pub async fn test_get_table_rows() -> JsValue
+{
+    // prepare POST request to fetch from EOSIO multiindex table
+    let payload = EOSGetTableRowsPayload{
+        code: "thezeostoken".to_string(),
+        table: "mteosram".to_string(),
+        scope: "thezeostoken".to_string(),
+        index_position: "primary".to_string(),
+        key_type: "uint64_t".to_string(),
+        encode_type: "dec".to_string(),
+        lower_bound: 0,
+        upper_bound: 15,
+        limit: 1,
+        reverse: false,
+        show_payer: false
+    };
+    
+    let res = fetch_table_rows(&mut payload.clone()).await;
+    JsValue::from_str(&serde_json::to_string(&res).unwrap())
 }
 
 #[wasm_bindgen]
