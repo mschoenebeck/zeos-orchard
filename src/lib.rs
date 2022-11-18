@@ -45,6 +45,7 @@ use tree::{MerkleHashOrchard, MerklePath};
 use pasta_curves::Fp;
 use crate::note::{Nullifier, RandomSeed};
 use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
+use crate::note_encryption::OUT_CIPHERTEXT_SIZE;
 use crate::keys::SpendingKey;
 use crate::tree::EMPTY_ROOTS;
 use crate::value::NoteValue;
@@ -74,7 +75,7 @@ use std::cmp::min;
 extern crate serde_derive;
 
 #[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct EOSTransmittedNoteCiphertext
 {
     /// This notes global ID.
@@ -894,7 +895,63 @@ pub async fn test_get_global() -> JsValue
     JsValue::from_str(&serde_json::to_string(&res).unwrap())
 }
 
-pub async fn fetch_notes()
+pub async fn fetch_notes(from: u64, to: u64) -> Vec<EOSTransmittedNoteCiphertext>
 {
+    // prepare POST request to fetch from EOSIO multiindex table
+    let payload = EOSGetTableRowsPayload{
+        code: "thezeostoken".to_string(),
+        table: "noteseosram".to_string(),
+        scope: "thezeostoken".to_string(),
+        index_position: "primary".to_string(),
+        key_type: "uint64_t".to_string(),
+        encode_type: "dec".to_string(),
+        lower_bound: from,
+        upper_bound: to,
+        limit: 10,
+        reverse: false,
+        show_payer: false
+    };
+    let res = fetch_table_rows(&mut payload.clone()).await;
     
+    let mut v = Vec::new();
+    for str in res.rows
+    {
+        // parse serialized EOS data
+        let mut arr = [0; 8+8+8+1+32*2+2+ENC_CIPHERTEXT_SIZE*2+2+OUT_CIPHERTEXT_SIZE*2];
+        assert!(hex::decode_to_slice(str, &mut arr).is_ok());
+        let id = u64::from_le_bytes(arr[0..8].try_into().unwrap());
+        let block_number = u64::from_le_bytes(arr[8..16].try_into().unwrap());
+        let leaf_index = u64::from_le_bytes(arr[16..24].try_into().unwrap());
+        // skip reading string sizes since we already know the exact length
+        let epk_bytes: [u8; 32*2] = arr[24+1..24+1+32*2].try_into().unwrap();
+        let enc_ciphertext: [u8; ENC_CIPHERTEXT_SIZE*2] = arr[24+1+32*2+2..24+1+32*2+2+ENC_CIPHERTEXT_SIZE*2].try_into().unwrap();
+        let out_ciphertext: [u8; OUT_CIPHERTEXT_SIZE*2] = arr[24+1+32*2+2+ENC_CIPHERTEXT_SIZE*2+2..24+1+32*2+2+ENC_CIPHERTEXT_SIZE*2+2+OUT_CIPHERTEXT_SIZE*2].try_into().unwrap();
+        let epk_bytes_str = String::from_utf8(epk_bytes.to_vec()).unwrap();
+        let enc_ciphertext_str = String::from_utf8(enc_ciphertext.to_vec()).unwrap();
+        let out_ciphertext_str = String::from_utf8(out_ciphertext.to_vec()).unwrap();
+        let mut epk_bytes = [0; 32];
+        let mut enc_ciphertext = [0; ENC_CIPHERTEXT_SIZE];
+        let mut out_ciphertext = [0; OUT_CIPHERTEXT_SIZE];
+        assert!(hex::decode_to_slice(epk_bytes_str, &mut epk_bytes).is_ok());
+        assert!(hex::decode_to_slice(enc_ciphertext_str, &mut enc_ciphertext).is_ok());
+        assert!(hex::decode_to_slice(out_ciphertext_str, &mut out_ciphertext).is_ok());
+        v.push(EOSTransmittedNoteCiphertext{
+            id,
+            block_number,
+            leaf_index,
+            encrypted_note: TransmittedNoteCiphertext{
+                epk_bytes,
+                enc_ciphertext,
+                out_ciphertext
+            }
+        });
+    } 
+    v
+}
+
+#[wasm_bindgen]
+pub async fn test_fetch_notes() -> JsValue
+{   
+    let res = fetch_notes(0, 10).await;
+    JsValue::from_str(&serde_json::to_string(&res).unwrap())
 }
