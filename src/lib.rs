@@ -806,9 +806,92 @@ pub fn eos_name_to_value(str: String) -> u64
     value
 }
 
-pub async fn fetch_global_state()
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Global
 {
+    #[serde(with = "string")]
+    pub note_count: u64,
+    #[serde(with = "string")]
+    pub leaf_count: u64,
+    #[serde(with = "string")]
+    pub tree_depth: u64,
+    pub roots: Vec<MerkleHashOrchard>
+}
 
+pub async fn fetch_global_state() -> Global
+{
+    // prepare POST request to fetch from EOSIO singleton table
+    let mut opts = RequestInit::new();
+    opts.method("POST");
+    opts.mode(RequestMode::Cors);
+    opts.body(Some(&JsValue::from_str("{\"code\":\"thezeostoken\",\"table\":\"global\",\"scope\":\"thezeostoken\"}")));
+
+    let url = "https://kylin-dsp-1.liquidapps.io/v1/chain/get_table_rows";
+    let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+    request
+        .headers()
+        .set("Accept", "application/json").unwrap();
+
+    // send http request using browser window's fetch
+    let window = web_sys::window().unwrap();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+
+    // `resp_value` is a `Response` object.
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into().unwrap();
+    let str = resp.text()
+        .map(JsFuture::from).unwrap()
+        .await.unwrap()
+        .as_string()
+        .expect("fetch: Response expected `String` after .text()");
+
+    let res: EOSGetTableRowsResponse = serde_json::from_str(&str).unwrap();
+    if res.rows.is_empty()
+    {
+        return Global{
+            note_count: 0,
+            leaf_count: 0,
+            tree_depth: 0,
+            roots: Vec::new()
+        }
+    }
+
+    // parse serialized EOS data
+    let mut arr = [0; 8+8+8+1];
+    let str: String = res.rows[0].clone().chars().take((8+8+8+1)*2).collect();
+    assert!(hex::decode_to_slice(str, &mut arr).is_ok());
+    let note_count = u64::from_le_bytes(arr[0..8].try_into().unwrap());
+    let leaf_count = u64::from_le_bytes(arr[8..16].try_into().unwrap());
+    let tree_depth = u64::from_le_bytes(arr[16..24].try_into().unwrap());
+    let num_roots = u8::from_le_bytes(arr[24..25].try_into().unwrap());
+    let mut roots = Vec::new();
+    let mut arr = vec![0; num_roots as usize * 32];
+    let str: String = res.rows[0].clone().chars().skip((8+8+8+1)*2).collect();
+    assert!(hex::decode_to_slice(str, &mut arr).is_ok());
+    for i in 0..num_roots as usize
+    {
+        let os = i * 32;
+        roots.push(MerkleHashOrchard::from(Fp([
+            u64::from_le_bytes(arr[os +  0..os +  8].try_into().unwrap()),
+            u64::from_le_bytes(arr[os +  8..os + 16].try_into().unwrap()),
+            u64::from_le_bytes(arr[os + 16..os + 24].try_into().unwrap()),
+            u64::from_le_bytes(arr[os + 24..os + 32].try_into().unwrap())
+        ])));
+    }
+    
+    Global{
+        note_count,
+        leaf_count,
+        tree_depth,
+        roots
+    }
+}
+
+#[wasm_bindgen]
+pub async fn test_get_global() -> JsValue
+{
+    let res = fetch_global_state().await;
+    JsValue::from_str(&serde_json::to_string(&res).unwrap())
 }
 
 pub async fn fetch_notes()

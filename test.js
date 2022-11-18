@@ -5,7 +5,7 @@
 //}).catch(console.error);
 ///////////////////////////////////////////////
 
-const {test1, test_merkle_hash_fetch, test_merkle_path_fetch, test_get_table_rows} = wasm_bindgen;
+const {test1, test_merkle_hash_fetch, test_merkle_path_fetch, test_get_table_rows, test_get_global} = wasm_bindgen;
 
 async function run_wasm() {
     // Load the wasm file by awaiting the Promise returned by `wasm_bindgen`
@@ -18,7 +18,8 @@ async function run_wasm() {
     // This will create a worker from within our Rust code compiled to WASM
     //console.log(test_merkle_hash_fetch("0"));
     //console.log(test_merkle_path_fetch("1", "5"));
-    console.log(test_get_table_rows());
+    //console.log(test_get_table_rows());
+    console.log(test_get_global());
 }
 
 run_wasm();
