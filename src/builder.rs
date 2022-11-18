@@ -229,7 +229,7 @@ pub fn create_raw_zactions(
                         let rza = RawZAction::from_parts(
                             desc.za_type,
                             &fvk,
-                            Some(merkle_path.2(spent_notes[i].leaf_index.parse().unwrap(), merkle_path.0, merkle_path.1)),
+                            Some(merkle_path.2(spent_notes[i].leaf_index, merkle_path.0, merkle_path.1)),
                             Some(spent_notes[i].note),
                             Some(note_b),
                             Some(note_c),
@@ -275,7 +275,7 @@ pub fn create_raw_zactions(
                     let rza = RawZAction::from_parts(
                         desc.za_type,
                         &fvk,
-                        Some(merkle_path.2(spent_note.leaf_index.parse().unwrap(), merkle_path.0, merkle_path.1)),
+                        Some(merkle_path.2(spent_note.leaf_index, merkle_path.0, merkle_path.1)),
                         Some(spent_note.note),
                         Some(note_b),
                         None,

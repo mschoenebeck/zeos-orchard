@@ -16,7 +16,7 @@ async function run_wasm() {
 
     // Run main WASM entry point
     // This will create a worker from within our Rust code compiled to WASM
-    console.log(test_merkle_path_fetch("5"));
+    console.log(test_merkle_path_fetch("1", "5"));
 }
 
 run_wasm();

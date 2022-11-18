@@ -78,13 +78,13 @@ extern crate serde_derive;
 pub struct EOSTransmittedNoteCiphertext
 {
     /// This notes global ID.
-    id: String, //u64
+    id: u64,
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
-    block_number: String, //u64
+    block_number: u64,
     /// The current leaf index of the merkle tree when this note was
     /// added to the global list of encrypted notes
-    leaf_index: String, //u64
+    leaf_index: u64,
     /// The actual encrypted note
     encrypted_note: TransmittedNoteCiphertext
 }
@@ -108,9 +108,9 @@ impl Serialize for TransmittedNoteCiphertext
 impl EOSTransmittedNoteCiphertext
 {
     pub fn from_parts(
-        id: String,
-        block_number: String,
-        leaf_index: String,
+        id: u64,
+        block_number: u64,
+        leaf_index: u64,
         epk_bytes_str: String,
         enc_ciphertext_str: String,
         out_ciphertext_str: String
@@ -150,10 +150,10 @@ pub struct EOSNote
 {
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
-    pub(crate) block_number: String, //u64
+    pub(crate) block_number: u64,
     /// The current leaf index of the merkle tree when this note was
     /// added to the global list of encrypted notes
-    pub(crate) leaf_index: String, //u64
+    pub(crate) leaf_index: u64,
     /// The actual Note
     pub(crate) note: Note
 }
@@ -417,7 +417,7 @@ impl EOSNote
 {
     pub fn from_parts(bn: u64, li: u64, note: Note) -> Self
     {
-        EOSNote { block_number: bn.to_string(), leaf_index: li.to_string(), note }
+        EOSNote { block_number: bn, leaf_index: li, note }
     }
 }
 
@@ -484,7 +484,6 @@ pub struct EOSActionDesc
     pub(crate) zaction_descs: Vec<ZActionDesc>
 }
 
-
 #[wasm_bindgen]
 pub async fn test1(_js_objects: JsValue) -> String
 {
@@ -495,14 +494,74 @@ pub async fn test1(_js_objects: JsValue) -> String
     EOSNote::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
 }
 
-pub async fn fetch_merkle_hash(index: u64) -> (u64, MerkleHashOrchard)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EOSGetTableRowsResponse
+{
+    pub rows: Vec<String>,
+    pub more: bool,
+    #[serde(with = "string")]
+    pub next_key: u64
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EOSGetTableRowsPayload
+{
+    pub code: String,               // required
+    pub table: String,              // required
+    pub scope: String,              // required
+    pub index_position: String,     // 'primary', 'secondary', 'tertiary', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth' or 'tenth', default: 'primary'?
+    pub key_type: String,           // 'uint64_t' or 'name', default: 'uint64_t'?
+    pub encode_type: String,        // 'dec' or 'hex', default: 'dec'
+    #[serde(with = "string")]
+    pub lower_bound: u64,
+    #[serde(with = "string")]
+    pub upper_bound: u64,
+    pub limit: i32,                 // default: 10
+    pub reverse: bool,              // default: false
+    pub show_payer: bool            // default: false
+}
+
+// from: https://github.com/serde-rs/json/issues/329#issuecomment-305608405
+mod string
+{
+    use std::fmt::Display;
+    use std::str::FromStr;
+
+    use serde::{de, Serializer, Deserialize, Deserializer};
+
+    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+        where T: Display,
+              S: Serializer
+    {
+        serializer.collect_str(value)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+        where T: FromStr,
+              T::Err: Display,
+              D: Deserializer<'de>
+    {
+        let str = String::deserialize(deserializer)?;
+        if str.is_empty()
+        {
+            // if field is empty string assume zero
+            "0".parse().map_err(de::Error::custom)
+        }
+        else
+        {
+            str.parse().map_err(de::Error::custom)
+        }
+    }
+}
+
+pub async fn fetch_table_rows(payload: &EOSGetTableRowsPayload) -> EOSGetTableRowsResponse
 {
     // prepare POST request to fetch from EOSIO multiindex table
-    let body = format!("{{ \"code\": \"thezeostoken\", \"table\": \"mteosram\", \"scope\": \"thezeostoken\", \"index_position\": \"primary\", \"key_type\": \"uint64_t\", \"lower_bound\": \"{}\", \"upper_bound\": \"{}\" }}", index.to_string(), index.to_string());
     let mut opts = RequestInit::new();
     opts.method("POST");
     opts.mode(RequestMode::Cors);
-    opts.body(Some(&JsValue::from_str(&body)));
+    opts.body(Some(&JsValue::from_str(&serde_json::to_string(payload).unwrap())));
+
     let url = "https://kylin-dsp-1.liquidapps.io/v1/chain/get_table_rows";
     let request = Request::new_with_str_and_init(&url, &opts).unwrap();
     request
@@ -512,7 +571,7 @@ pub async fn fetch_merkle_hash(index: u64) -> (u64, MerkleHashOrchard)
     // send http request using browser window's fetch
     let window = web_sys::window().unwrap();
     let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
-    
+
     // `resp_value` is a `Response` object.
     assert!(resp_value.is_instance_of::<Response>());
     let resp: Response = resp_value.dyn_into().unwrap();
@@ -521,13 +580,38 @@ pub async fn fetch_merkle_hash(index: u64) -> (u64, MerkleHashOrchard)
         .await.unwrap()
         .as_string()
         .expect("fetch: Response expected `String` after .text()");
-    
+
     // str has the following format:
-    // "{\"rows\":[\"0f00000000000000f9ffffff84a9c3cf3e30e5be1bd11110ffffffffffffffffffffffffffffff3f\"],\"more\":false,\"next_key\":\"\"}"
+    // {"rows":["", "", ...], "more": false, "next_key": ""}
+    let res: EOSGetTableRowsResponse = serde_json::from_str(&str).unwrap();
+    res
+}
+
+pub async fn fetch_merkle_hash(index: u64) -> Option<(u64, MerkleHashOrchard)>
+{
+    // prepare POST request to fetch from EOSIO multiindex table
+    let payload = EOSGetTableRowsPayload{
+        code: "thezeostoken".to_string(),
+        table: "mteosram".to_string(),
+        scope: "thezeostoken".to_string(),
+        index_position: "primary".to_string(),
+        key_type: "uint64_t".to_string(),
+        encode_type: "dec".to_string(),
+        lower_bound: index,
+        upper_bound: index,
+        limit: 1,
+        reverse: false,
+        show_payer: false
+    };
+    
+    let res = fetch_table_rows(&payload).await;
+    if res.rows.len() == 0
+    {
+        return None;
+    }
     // extract serialized node data and parse to (index, MerkleHash) tuple
-    let str: String = str.chars().skip(10).take(40 * 2).collect();
     let mut arr = [0; 40];
-    assert!(hex::decode_to_slice(str, &mut arr).is_ok());
+    assert!(hex::decode_to_slice(res.rows[0].clone(), &mut arr).is_ok());
     let index = u64::from_le_bytes(arr[0..8].try_into().unwrap());
     let value = MerkleHashOrchard::from(Fp([
         u64::from_le_bytes(arr[ 8..16].try_into().unwrap()),
@@ -536,7 +620,7 @@ pub async fn fetch_merkle_hash(index: u64) -> (u64, MerkleHashOrchard)
         u64::from_le_bytes(arr[32..40].try_into().unwrap())
     ]));
     
-    (index, value)
+    Some((index, value))
 }
 
 macro_rules! MT_ARR_LEAF_ROW_OFFSET     { ($d:expr) => { (1 << ($d)) - 1 }; }
@@ -563,7 +647,6 @@ pub async fn get_merkle_path(
     // walk through the tree (bottom to root)
     for d in 0..MERKLE_DEPTH_ORCHARD
     {
-        //let log_str = format!("d: {}, tree_idx: {}, tos: {}, idx: {}, last_node_in_row: {}", d, tree_idx, tos, idx, last_node_in_row);log(&log_str);
         // if array index of node is uneven it is always the left child
         let is_left_child = 1 == idx % 2;
         // determine sister node
@@ -577,7 +660,7 @@ pub async fn get_merkle_path(
             let (i, v) = if sis_idx > last_node_in_row { 
                 (sis_idx_tos, EMPTY_ROOTS[d]) 
             } else {
-                fetch_merkle_hash(sis_idx_tos).await
+                fetch_merkle_hash(sis_idx_tos).await.unwrap()
             };
             node_buffer.insert(i, v);
             v
@@ -596,14 +679,18 @@ pub async fn get_merkle_path(
 pub async fn test_merkle_hash_fetch(index: String) -> JsValue
 {
     let mh = fetch_merkle_hash(index.parse::<u64>().unwrap()).await;
-    JsValue::from_str(&hex::encode(mh.1.to_bytes()))
+    match mh {
+        None => JsValue::NULL,
+        Some(x) => JsValue::from_str(&hex::encode(x.1.to_bytes()))
+    }
 }
 
 #[wasm_bindgen]
-pub async fn test_merkle_path_fetch(leaf_index: String) -> JsValue
+pub async fn test_merkle_path_fetch(leaf_index: String, leaf_count: String) -> JsValue
 {
+    // remember to set the correct merkle tree depth in constants.rs
     let mut nb: HashMap<u64, MerkleHashOrchard> = HashMap::new();
-    let path = get_merkle_path(leaf_index.parse::<u64>().unwrap(), 10, &mut nb).await;
+    let path = get_merkle_path(leaf_index.parse::<u64>().unwrap(), leaf_count.parse::<u64>().unwrap(), &mut nb).await;
 
     let str = format!("{}, [({:?}), ({:?}), ({:?}), ({:?})]", path.position(), hex::encode(path.auth_path()[0].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[1].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[2].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[3].inner().0[0].to_le_bytes()));
     JsValue::from_str(&str)
@@ -675,4 +762,14 @@ pub fn eos_name_to_value(str: String) -> u64
             value |= v;
         }
     value
+}
+
+pub async fn fetch_global_state()
+{
+
+}
+
+pub async fn fetch_notes()
+{
+    
 }
