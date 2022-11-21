@@ -125,7 +125,7 @@ impl Wallet
         let mut contract = TokenContract::new(ENDPOINTS.map(String::from));
         let builder = TransactionBuilder::new(self.state.leaf_count);
         let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
-        log(&format!("{:?}", action_descs));
+        //log(&format!("{:?}", action_descs));
 
         let (proof, actions) = builder.build_transaction(
             &sk,
@@ -134,12 +134,14 @@ impl Wallet
             &mut contract,
             &eos_auth
         ).await;
-        log("s");
+
         assert!(proof.is_some());
         let proof_str = hex::encode(proof.unwrap().as_ref());
         contract.upload_proof_to_liquidstorage(&proof_str).await;
 
         // return JSON string of EOS actions ready to execute
+        // all non-serialized 'data' strings should be valid JSON
+        // => remove quotation marks and backslashes
         serde_json::to_string(&actions).unwrap()
             .replace(r#""data":"{"#, r#""data":{"#)
             .replace(r#"}"}"#, r#"}}"#)
