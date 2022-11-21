@@ -6,7 +6,7 @@ all: ./pkg
 ./pkg:
 	wasm-pack build --target no-modules
 
-clean: ./pkg
+clean:
 	rm -rf ./pkg
 
 # test with index.html in browser

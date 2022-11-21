@@ -6,6 +6,8 @@
 //! types. For example, [`Address`] is documented as being a shielded payment address; we
 //! implicitly mean it is an Orchard payment address (as opposed to e.g. a Sapling payment
 //! address, which is also shielded).
+//! 
+//! See also: ZIP-224, Orchard Shielded Protocol (https://zips.z.cash/zip-0224)
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Temporary until we have more of the crate implemented.
@@ -23,6 +25,7 @@ pub mod builder;
 pub mod bundle;
 pub mod circuit;
 pub mod contract;
+pub mod wallet;
 mod constants;
 pub mod keys;
 pub mod note;
@@ -47,6 +50,7 @@ pub use tree::Anchor;
 use crate::keys::SpendingKey;
 use crate::keys::FullViewingKey;
 use crate::contract::NoteEx;
+use crate::builder::HasMerkleTree;
 
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
@@ -54,7 +58,7 @@ extern crate serde_json;
 
 use rand::rngs::OsRng;
 
-use crate::contract::*;
+use crate::contract::{TokenContract, EOSGetTableRowsPayload};
 
 #[macro_use]
 extern crate serde_derive;
@@ -64,31 +68,14 @@ const ENDPOINTS: NonEmpty<&'static str> = nonempty![
 ];
 
 #[wasm_bindgen]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ZEOSSpendingKey
-{
-    /// The actual spending key
-    pub(crate) sk: SpendingKey
-}
-
-#[wasm_bindgen]
-impl ZEOSSpendingKey
-{
-    /// create new spending key from seed phrase
-    pub fn from_seed(seed: String) -> Self
-    {
-        ZEOSSpendingKey { sk: SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0).unwrap() }
-    }
-}
-
-#[wasm_bindgen]
 pub async fn test1(_js_objects: JsValue) -> String
 {
     console_error_panic_hook::set_once();
     //let elements: Vec<JSSpendingKey> = serde_wasm_bindgen::from_value(js_objects).unwrap();
     
-    let mut rng = OsRng.clone();
-    NoteEx::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
+    //let mut rng = OsRng.clone();
+    //NoteEx::from_parts(0, 0, Note::dummy(&mut rng, None, None).2).commitment()
+    "".to_string()
 }
 
 #[wasm_bindgen]
@@ -150,6 +137,32 @@ pub async fn test_fetch_notes() -> JsValue
     let thezeostoken = TokenContract::new(ENDPOINTS.map(String::from));
     let res = thezeostoken.get_encrypted_notes(0, 10).await;
     JsValue::from_str(&serde_json::to_string(&res).unwrap())
+}
+
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Request, RequestInit, RequestMode, FormData};
+#[wasm_bindgen]
+pub async fn test_proof_upload()
+{
+    let fd = FormData::new().unwrap();
+    assert!(fd.append_with_str("strupload", "12345").is_ok());
+
+    // prepare POST request to fetch from EOSIO multiindex table
+    let mut opts = RequestInit::new();
+    opts.method("POST");
+    opts.mode(RequestMode::NoCors);
+    opts.body(Some(&fd));
+    
+    let url = "http://web3.zeos.one/uploadstr";
+    let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+    
+    // send http request using browser window's fetch
+    let window = web_sys::window().unwrap();
+    let _resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+
+    // 'no-cors' mode doesn't allow the browser to read any response content.
+    // see: https://stackoverflow.com/a/54906434/2340535
+    
 }
 
 #[wasm_bindgen]

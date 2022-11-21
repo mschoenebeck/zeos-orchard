@@ -113,7 +113,7 @@ impl Bundle
             }
         });
 
-        assert!(circuits.len() > 0, "bundle must contain than just ZA_MINTAUTH");
+        assert!(circuits.len() > 0, "bundle must contain more than just ZA_MINTAUTH");
         let pk = ProvingKey::build(Circuit::default(), K);
         (Proof::create(&pk, &circuits, &instances, rng).unwrap(), circuits, instances)
     }

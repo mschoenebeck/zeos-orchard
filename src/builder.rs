@@ -1,4 +1,4 @@
-//! Logic for building entire EOS transactions depending on ZEOS privacy actions.
+//! Logic for building entire EOSIO transactions depending on ZEOS privacy actions.
 
 use crate::action::{RawZAction, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 use crate::address::Address;
@@ -17,7 +17,6 @@ use rand::rngs::OsRng;
 use rustzeos::halo2::Proof;
 use sha256::digest;
 use std::cmp::min;
-use wasm_bindgen::prelude::*;
 
 /// Rust equivalent of: cdt/libraries/eosiolib/core/eosio/name.hpp -> name.char_to_value()
 /// See also: https://github.com/AntelopeIO/cdt/blob/c010d6fae2656f212f78d01c41812734934eb54c/libraries/eosiolib/core/eosio/name.hpp#L108
@@ -73,8 +72,6 @@ pub fn eos_name_to_value(str: String) -> u64
     value
 }
 
-
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZActionDesc
 {
@@ -87,7 +84,6 @@ pub struct ZActionDesc
     pub(crate) memo: String,
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EOSAuthorization
 {
@@ -95,7 +91,6 @@ pub struct EOSAuthorization
     pub(crate) permission: String,
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EOSAction
 {
@@ -106,7 +101,6 @@ pub struct EOSAction
     pub(crate) data: String,
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EOSActionDesc
 {
@@ -151,9 +145,8 @@ impl TransactionBuilder
         sk: &SpendingKey,
         notes: &mut Vec<NoteEx>,
         action_descs: &Vec<EOSActionDesc>,
-        //merkle_path: &mut (u64, &mut HashMap<u64, MerkleHashOrchard>, fn(u64, u64, &mut HashMap<u64, MerkleHashOrchard>) -> MerklePath),
         contract: &mut D,
-        eos_auth: Vec<EOSAuthorization>
+        eos_auth: &Vec<EOSAuthorization>
     ) -> (Option<Proof>, Vec<EOSAction>)
     {
         let mut rng = OsRng.clone();
@@ -197,17 +190,20 @@ impl TransactionBuilder
                 // TODO: handle error (None) of create_raw_zactions
                 rzactions_step.extend(self.create_raw_zactions(sk, notes, zad, contract).await.unwrap());
             }
-            // encode the zactions of all raw zactions of this step (including the dummy zaction!) into the EOS actions 'data'
-            let mut ser_zactions = format!("{:02X?}", rzactions_step.len() + 1);
-            ser_zactions.push_str("efbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeadde000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-            for rza in &rzactions_step
-            {
-                ser_zactions.push_str(&rza.zaction().serialize_eos());
-            }
-            // append the already existing serialized data from before
-            ser_zactions.push_str(&action_descs[i].action.data);
+            // if there are zactions for this step encode the zactions of all raw zactions of this step (including the dummy zaction!) into the EOS actions 'data'
             let mut a = action_descs[i].action.clone();
-            a.data = ser_zactions;
+            if rzactions_step.len() > 0
+            {
+                let mut ser_zactions = format!("{:02X?}", rzactions_step.len() + 1);
+                ser_zactions.push_str("efbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeaddeefbeadde000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+                for rza in &rzactions_step
+                {
+                    ser_zactions.push_str(&rza.zaction().serialize_eos());
+                }
+                // append the already existing serialized data from before
+                ser_zactions.push_str(&action_descs[i].action.data);
+                a.data = ser_zactions;
+            }
             list.push(a);
             // add the raw zactions of this step to the list of all raw zactions
             raw_zactions.extend(rzactions_step);
@@ -232,7 +228,7 @@ impl TransactionBuilder
             account: String::from("thezeostoken"),
             name: String::from("step"),
             authorization: eos_auth.clone(),
-            data: String::from("")
+            data: String::from("{}")
         }; list.len()]);
 
         // copy all EOS actions into the tx after the privacy sequence (if any)
@@ -527,10 +523,10 @@ mod tests
     {
         let mut rng = OsRng.clone();
         let mut notes = Vec::new();
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let nc = notes[3].note.commitment().into();
 
         let (mut spent_notes, change) = select_fungible_notes(&mut notes, 6, 1, 1).unwrap();
@@ -564,10 +560,10 @@ mod tests
     {
         let mut rng = OsRng.clone();
         let mut notes = Vec::new();
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
 
         let sk = SpendingKey::from_zip32_seed(b"miau seed miau 123 Der seed muss lang genug sein...", 0, 0).unwrap();
@@ -622,12 +618,12 @@ mod tests
         let fvk: FullViewingKey = (&sk).into();
         
         let mut notes = Vec::new();
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
-        notes.push(NoteEx::from_parts(0, 0, Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])));
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
 
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
@@ -747,7 +743,7 @@ mod tests
             &mut notes,
             &action_descs,
             &mut dc,
-            newstock1dex_auth.to_vec()
+            &newstock1dex_auth.to_vec()
         ).await;
 
         // print transaction data for manual execution of transactions

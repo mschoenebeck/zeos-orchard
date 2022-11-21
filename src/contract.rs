@@ -4,13 +4,13 @@ use crate::tree::{MerkleHashOrchard, MerklePath};
 use nonempty::NonEmpty;
 use pasta_curves::Fp;
 use crate::note::{Note, TransmittedNoteCiphertext, Nullifier, RandomSeed};
-use crate::note_encryption::ENC_CIPHERTEXT_SIZE;
+use crate::note_encryption::{ENC_CIPHERTEXT_SIZE, try_note_decryption, try_output_recovery_with_ovk};
 use crate::note_encryption::OUT_CIPHERTEXT_SIZE;
-use crate::ZEOSSpendingKey;
 use crate::tree::EMPTY_ROOTS;
 use crate::value::NoteValue;
-use crate::note::ExtractedNoteCommitment;
-use crate::keys::FullViewingKey;
+use crate::builder::HasMerkleTree;
+use crate::keys::IncomingViewingKey;
+use crate::keys::OutgoingViewingKey;
 use crate::address::Address;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
 extern crate console_error_panic_hook;
@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, RequestMode, Response, FormData};
 
 
 // helper macros for merkle tree operations
@@ -30,7 +30,6 @@ macro_rules! MT_ARR_LEAF_ROW_OFFSET     { ($d:expr) => { (1 << ($d)) - 1 }; }
 macro_rules! MT_ARR_FULL_TREE_OFFSET    { ($d:expr) => { (1 << (($d) + 1)) - 1 }; }
 macro_rules! MT_NUM_LEAVES              { ($d:expr) => { 1 << ($d) }; }
 
-#[wasm_bindgen]
 #[derive(Debug, Serialize)]
 pub struct TransmittedNoteCiphertextEx
 {
@@ -61,50 +60,55 @@ impl Serialize for TransmittedNoteCiphertext
     }
 }
 
-#[wasm_bindgen]
 impl TransmittedNoteCiphertextEx
 {
-    pub fn from_parts(
-        id: u64,
-        block_number: u64,
-        leaf_index: u64,
-        epk_bytes_str: String,
-        enc_ciphertext_str: String,
-        out_ciphertext_str: String
-    ) -> Self
+    /// Try to decrypt note as receiver
+    pub fn try_decrypt_as_receiver(
+        &self,
+        ivk: &IncomingViewingKey
+    ) -> Option<NoteEx>
     {
-        assert!(epk_bytes_str.len() == 32 * 2);
-        let mut epk_bytes = [0; 32];
-        hex::decode_to_slice(epk_bytes_str, &mut epk_bytes).expect("Decoding of 'epk_bytes_str' failed");
-        
-        assert!(enc_ciphertext_str.len() == ENC_CIPHERTEXT_SIZE * 2);
-        let mut enc_ciphertext = [0; ENC_CIPHERTEXT_SIZE];
-        hex::decode_to_slice(enc_ciphertext_str, &mut enc_ciphertext).expect("Decoding of 'enc_ciphertext_str' failed");
-
-        assert!(out_ciphertext_str.len() == 80 * 2);
-        let mut out_ciphertext = [0; 80];
-        hex::decode_to_slice(out_ciphertext_str, &mut out_ciphertext).expect("Decoding of 'out_ciphertext_str' failed");
-
-        TransmittedNoteCiphertextEx{
-            id,
-            block_number,
-            leaf_index,
-            encrypted_note: TransmittedNoteCiphertext { epk_bytes, enc_ciphertext, out_ciphertext }
+        match try_note_decryption(ivk, &self.encrypted_note)
+        {
+            Some(decrypted_note) => {
+                Some(NoteEx {
+                    id: self.id,
+                    block_number: self.block_number,
+                    leaf_index: self.leaf_index,
+                    note: decrypted_note
+                })
+            },
+            None => None,
         }
     }
 
-    // try decrypt as receiver
-    // TODO
-
-    // try decrypt as sender
-    // TODO
+    /// Try to decrypt note as sender
+    pub fn try_decrypt_as_sender(
+        &self,
+        ovk: &OutgoingViewingKey
+    ) -> Option<NoteEx>
+    {
+        match try_output_recovery_with_ovk(ovk, &self.encrypted_note)
+        {
+            Some(decrypted_note) => {
+                Some(NoteEx {
+                    id: self.id,
+                    block_number: self.block_number,
+                    leaf_index: self.leaf_index,
+                    note: decrypted_note
+                })
+            },
+            None => None,
+        }
+    }
 
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoteEx
 {
+    // The global id of this note
+    pub(crate) id: u64,
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
     pub(crate) block_number: u64,
@@ -335,9 +339,9 @@ impl<'de> Deserialize<'de> for Note
     }
 }
 
-#[wasm_bindgen]
 impl NoteEx
 {
+/*
     /// create a new note from JS obj with wasm bindings
     pub fn from(obj: JsValue) -> Self
     {
@@ -368,16 +372,8 @@ impl NoteEx
         res[24..32].copy_from_slice(&nf.inner().0[3].to_le_bytes());
         hex::encode(res)
     }
+*/
 }
-
-impl NoteEx
-{
-    pub fn from_parts(bn: u64, li: u64, note: Note) -> Self
-    {
-        NoteEx { block_number: bn, leaf_index: li, note }
-    }
-}
-
 
 /// Payload struct to fetch table rows of an EOSIO smart contract.
 /// See also: https://developers.eos.io/manuals/eos/v2.2/nodeos/plugins/chain_api_plugin/api-reference/index#operation/get_table_rows
@@ -464,6 +460,58 @@ pub struct TokenContract
 {
     endpoints: NonEmpty<String>,
     node_buffer: HashMap<u64, MerkleHashOrchard>
+}
+
+impl HasMerkleTree for TokenContract
+{
+    async fn get_merkle_path(
+        &mut self,
+        leaf_index: u64,
+        leaf_count: u64,
+    ) -> MerklePath
+    {
+        // only merkle trees with depth up to 32 are supported by the circuit design
+        assert!(MERKLE_DEPTH_ORCHARD <= 32);
+        // initialize return values: position is the leaf_index in the >local< tree
+        let position = (leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD)) as u32;
+        let mut auth_path = vec![EMPTY_ROOTS[0]; MERKLE_DEPTH_ORCHARD];
+
+        // calculate tree offset
+        let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let mut idx = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + position as u64;
+        let mut last_node_in_row = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_count % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1;
+
+        // walk through the tree (bottom to root)
+        for d in 0..MERKLE_DEPTH_ORCHARD
+        {
+            // if array index of node is uneven it is always the left child
+            let is_left_child = 1 == idx % 2;
+            // determine sister node
+            let sis_idx = if is_left_child { idx + 1 } else { idx - 1 };
+            // add sister node to auth_path
+            let sis_idx_tos = tos + sis_idx;
+            auth_path[d] = if self.node_buffer.contains_key(&sis_idx_tos) {
+                self.node_buffer[&sis_idx_tos]
+            } else {
+                // if the sister index is greater than last_node_in_row it is an empty root
+                let (i, v) = if sis_idx > last_node_in_row { 
+                    (sis_idx_tos, EMPTY_ROOTS[d]) 
+                } else {
+                    self.get_merkle_hash(sis_idx_tos).await.unwrap()
+                };
+                self.node_buffer.insert(i, v);
+                v
+            };
+            // set idx and last_node_in_row to parent node indices:
+            // left child's array index divided by two (integer division) equals array index of parent node
+            idx = if is_left_child { idx / 2 } else { sis_idx / 2 };
+            last_node_in_row = if 1 == last_node_in_row % 2 { last_node_in_row / 2 } else { (last_node_in_row-1) / 2 };
+        }
+
+        assert_eq!(auth_path.len(), MERKLE_DEPTH_ORCHARD);
+        MerklePath::from_parts(position, auth_path.try_into().unwrap())
+    }
 }
 
 impl TokenContract
@@ -576,55 +624,6 @@ impl TokenContract
         self.node_buffer.clear();
     }
 
-    pub async fn get_merkle_path(
-        &mut self,
-        leaf_index: u64,
-        leaf_count: u64,
-    ) -> MerklePath
-    {
-        // only merkle trees with depth up to 32 are supported by the circuit design
-        assert!(MERKLE_DEPTH_ORCHARD <= 32);
-        // initialize return values: position is the leaf_index in the >local< tree
-        let position = (leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD)) as u32;
-        let mut auth_path = vec![EMPTY_ROOTS[0]; MERKLE_DEPTH_ORCHARD];
-
-        // calculate tree offset
-        let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let mut idx = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + position as u64;
-        let mut last_node_in_row = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_count % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1;
-
-        // walk through the tree (bottom to root)
-        for d in 0..MERKLE_DEPTH_ORCHARD
-        {
-            // if array index of node is uneven it is always the left child
-            let is_left_child = 1 == idx % 2;
-            // determine sister node
-            let sis_idx = if is_left_child { idx + 1 } else { idx - 1 };
-            // add sister node to auth_path
-            let sis_idx_tos = tos + sis_idx;
-            auth_path[d] = if self.node_buffer.contains_key(&sis_idx_tos) {
-                self.node_buffer[&sis_idx_tos]
-            } else {
-                // if the sister index is greater than last_node_in_row it is an empty root
-                let (i, v) = if sis_idx > last_node_in_row { 
-                    (sis_idx_tos, EMPTY_ROOTS[d]) 
-                } else {
-                    self.get_merkle_hash(sis_idx_tos).await.unwrap()
-                };
-                self.node_buffer.insert(i, v);
-                v
-            };
-            // set idx and last_node_in_row to parent node indices:
-            // left child's array index divided by two (integer division) equals array index of parent node
-            idx = if is_left_child { idx / 2 } else { sis_idx / 2 };
-            last_node_in_row = if 1 == last_node_in_row % 2 { last_node_in_row / 2 } else { (last_node_in_row-1) / 2 };
-        }
-
-        assert_eq!(auth_path.len(), MERKLE_DEPTH_ORCHARD);
-        MerklePath::from_parts(position, auth_path.try_into().unwrap())
-    }
-
     pub async fn get_global_state(&self) -> Global
     {
         // prepare POST request to fetch from EOSIO singleton table
@@ -735,4 +734,29 @@ impl TokenContract
         v
     }
 
+    pub async fn upload_proof_to_liquidstorage(
+        &self,
+        proof: &String
+    )
+    {
+        let fd = FormData::new().unwrap();
+        assert!(fd.append_with_str("strupload", proof).is_ok());
+
+        // prepare POST request to fetch from EOSIO multiindex table
+        let mut opts = RequestInit::new();
+        opts.method("POST");
+        opts.mode(RequestMode::NoCors);
+        opts.body(Some(&fd));
+        
+        // TODO: Change to endpoints (need to have the 'web3uploader' service running)
+        let url = "http://web3.zeos.one/uploadstr";
+        let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+        
+        // send http request using browser window's fetch
+        let window = web_sys::window().unwrap();
+        let _resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+
+        // 'no-cors' mode doesn't allow the browser to read any response content.
+        // see: https://stackoverflow.com/a/54906434/2340535
+    }
 }
