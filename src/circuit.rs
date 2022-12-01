@@ -30,7 +30,7 @@ use crate::{
     note::{
         commitment::{NoteCommitTrapdoor, NoteCommitment},
         nullifier::Nullifier,
-        ExtractedNoteCommitment,
+        ExtractedNoteCommitment, Note,
     },
     primitives::redpallas::{SpendAuth, VerificationKey},
     spec::NonIdentityPallasPoint,

@@ -2,7 +2,7 @@
 
 use crate::builder::{TransactionBuilder, EOSActionDesc};
 use crate::constants::MERKLE_DEPTH_ORCHARD;
-use crate::keys::{SpendingKey, FullViewingKey, Scope::External};
+use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External};
 use crate::contract::{Global, NoteEx, TokenContract};
 use crate::{ENDPOINTS, log};
 
@@ -92,7 +92,7 @@ impl Wallet
         let mut new_notes = Vec::new();
         for en in encrypted_notes
         {
-            let o = en.try_decrypt_as_receiver(&fvk.to_ivk(External));
+            let o = en.try_decrypt_as_receiver(&PreparedIncomingViewingKey::new(&fvk.to_ivk(External)));
             if o.is_some()
             {
                 new_notes.push(o.unwrap());
