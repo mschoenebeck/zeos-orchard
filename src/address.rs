@@ -42,7 +42,7 @@ impl Address {
         fvk.address_at(0u32, Scope::External)
     }
 
-    /// returns the diversifier
+    /// Returns the [`Diversifier`] for this `Address`.
     pub fn diversifier(&self) -> Diversifier {
         self.d
     }

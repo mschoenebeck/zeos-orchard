@@ -3,7 +3,7 @@ use zeos_orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
     circuit::{Circuit, K},
-    keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
+    keys::{FullViewingKey, PreparedIncomingViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
     note::ExtractedNoteCommitment,
     note_encryption::OrchardDomain,
     tree::{MerkleHashOrchard, MerklePath},
@@ -11,7 +11,6 @@ use zeos_orchard::{
     Bundle, Note,
 };
 use rand::rngs::OsRng;
-//use zcash_note_encryption::try_note_decryption;
 use rustzeos::halo2::{ProvingKey, VerifyingKey};
 
 fn verify_bundle(bundle: &Bundle<Authorized, i64>, vk: &VerifyingKey) {
@@ -58,7 +57,7 @@ fn bundle_chain() {
 
     // Create a shielded bundle spending the previous output.
     let shielded_bundle: Bundle<_, i64> = {
-        let ivk = fvk.to_ivk(Scope::External);
+        let ivk = PreparedIncomingViewingKey::new(&fvk.to_ivk(Scope::External));
         let (note, _, _) = shielding_bundle
             .actions()
             .iter()

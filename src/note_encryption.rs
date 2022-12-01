@@ -17,19 +17,10 @@
 // Catch documentation errors caused by code changes.
 #![deny(broken_intra_doc_links)]
 #![deny(unsafe_code)]
-// TODO: #![deny(missing_docs)]
-
-//#[cfg(feature = "alloc")]
-//extern crate alloc;
-//#[cfg(feature = "alloc")]
-//use alloc::vec::Vec;
+#![deny(missing_docs)]
 
 use core::convert::TryInto;
 
-//use chacha20::{
-//    cipher::{NewCipher, StreamCipher, StreamCipherSeek},
-//    ChaCha20,
-//};
 use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
@@ -219,12 +210,12 @@ impl NoteEncryption {
 /// Implements section 4.19.2 of the
 /// [Zcash Protocol Specification](https://zips.z.cash/protocol/nu5.pdf#decryptivk).
 pub fn try_note_decryption(
-    ivk: &IncomingViewingKey,
+    ivk: &PreparedIncomingViewingKey,
     encrypted_note: &TransmittedNoteCiphertext,
 ) -> Option<Note> {
     let ephemeral_key = EphemeralKeyBytes(encrypted_note.epk_bytes);
 
-    let epk = OrchardDomain::epk(&ephemeral_key)?;
+    let epk = OrchardDomain::prepare_epk(OrchardDomain::epk(&ephemeral_key)?);
     let shared_secret = OrchardDomain::ka_agree_dec(ivk, &epk);
     let key = OrchardDomain::kdf(shared_secret, &ephemeral_key);
 
@@ -232,7 +223,7 @@ pub fn try_note_decryption(
 }
 
 fn try_note_decryption_inner(
-    ivk: &IncomingViewingKey,
+    ivk: &PreparedIncomingViewingKey,
     ephemeral_key: &EphemeralKeyBytes,
     encrypted_note: &TransmittedNoteCiphertext,
     key: Hash,
@@ -261,7 +252,7 @@ fn try_note_decryption_inner(
 }
 
 fn parse_note_plaintext_ivk(
-    ivk: &IncomingViewingKey,
+    ivk: &PreparedIncomingViewingKey,
     ephemeral_key: &EphemeralKeyBytes,
     plaintext: &[u8],
 ) -> Option<Note> {
@@ -391,7 +382,7 @@ use group::ff::PrimeField;
 use crate::{
     keys::{
         DiversifiedTransmissionKey, Diversifier, EphemeralPublicKey, EphemeralSecretKey,
-        IncomingViewingKey, OutgoingViewingKey, SharedSecret,
+        IncomingViewingKey, OutgoingViewingKey, PreparedEphemeralPublicKey, PreparedIncomingViewingKey, SharedSecret,
     },
     note::{ExtractedNoteCommitment, Nullifier, RandomSeed},
     spec::diversify_hash,
@@ -451,16 +442,13 @@ where
     let memo = plaintext[116..NOTE_PLAINTEXT_SIZE].try_into().unwrap();
 
     let pk_d = get_validated_pk_d(&diversifier)?;
-
     let recipient = Address::from_parts(diversifier, pk_d);
-    let note = Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo);
-    Some(note)
+    Some(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo).unwrap())
 }
 
 /// Orchard-specific note encryption logic.
 #[derive(Debug)]
-pub struct OrchardDomain {
-}
+pub struct OrchardDomain {}
 
 impl OrchardDomain {
     /// Derives the `EphemeralSecretKey` corresponding to this note.
@@ -477,12 +465,16 @@ impl OrchardDomain {
     fn get_pk_d(note: &Note) -> DiversifiedTransmissionKey {
         *note.recipient().pk_d()
     }
+    
+    fn prepare_epk(epk: EphemeralPublicKey) -> PreparedEphemeralPublicKey {
+        PreparedEphemeralPublicKey::new(epk)
+    }
 
     /// Derives `EphemeralPublicKey` from `esk` and the note's diversifier.
     pub fn ka_derive_public(
         note: &Note,
         esk: &EphemeralSecretKey,
-    ) -> EphemeralPublicKey {
+    ) -> EphemeralPublicKey{
         esk.derive_public(note.recipient().g_d())
     }
 
@@ -497,8 +489,8 @@ impl OrchardDomain {
     /// Derives the `SharedSecret` from the recipient's information during note trial
     /// decryption.
     fn ka_agree_dec(
-        ivk: &IncomingViewingKey,
-        epk: &EphemeralPublicKey,
+        ivk: &PreparedIncomingViewingKey,
+        epk: &PreparedEphemeralPublicKey
     ) -> SharedSecret {
         epk.agree(ivk)
     }
@@ -593,7 +585,7 @@ impl OrchardDomain {
     ///
     /// Panics if `plaintext` is shorter than [`COMPACT_NOTE_SIZE`].
     fn parse_note_plaintext_ivk(
-        ivk: &IncomingViewingKey,
+        ivk: &PreparedIncomingViewingKey,
         plaintext: &[u8],
     ) -> Option<Note> {
         orchard_parse_note_plaintext(plaintext, |diversifier| {
@@ -665,7 +657,7 @@ mod tests {
     use crate::{
         keys::{
             DiversifiedTransmissionKey, Diversifier, EphemeralSecretKey, IncomingViewingKey,
-            OutgoingViewingKey, SpendingKey, FullViewingKey, Scope::External
+            OutgoingViewingKey, PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External
         },
         note::{NT_FT, Nullifier, RandomSeed, TransmittedNoteCiphertext},
         value::{NoteValue},
@@ -682,7 +674,9 @@ mod tests {
             //
 
             // Recipient key material
-            let ivk = IncomingViewingKey::from_bytes(&tv.incoming_viewing_key).unwrap();
+            let ivk = PreparedIncomingViewingKey::new(
+                &IncomingViewingKey::from_bytes(&tv.incoming_viewing_key).unwrap(),
+            );
             let ovk = OutgoingViewingKey::from(tv.ovk);
             let d = Diversifier::from_bytes(tv.default_d);
             let pk_d = DiversifiedTransmissionKey::from_bytes(&tv.default_pk_d).unwrap();
@@ -702,7 +696,7 @@ mod tests {
             let nft = NoteValue::from_raw(0);
             let rseed = RandomSeed::from_bytes(tv.rseed, &rho).unwrap();
             let recipient = Address::from_parts(d, pk_d);
-            let note = Note::from_parts(NT_FT, recipient, d1, d2, sc, nft, rho, rseed, tv.memo);
+            let note = Note::from_parts(NT_FT, recipient, d1, d2, sc, nft, rho, rseed, tv.memo).unwrap();
             //let cmx = ExtractedNoteCommitment::from(note.commitment());
 
             //
@@ -790,7 +784,7 @@ mod tests {
         };
 
         // test receiver decryption
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_note) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_note) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note),
             None => panic!("Note decryption failed"),
         }

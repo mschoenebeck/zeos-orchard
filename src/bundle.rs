@@ -133,7 +133,7 @@ mod tests
     use super::{Bundle, RawZAction};
     use crate::{
         keys::{
-            SpendingKey, FullViewingKey, Scope::External
+            SpendingKey, FullViewingKey, Scope::External, PreparedIncomingViewingKey
         },
         note_encryption::{
             try_note_decryption, try_output_recovery_with_ovk
@@ -331,27 +331,27 @@ mod tests
         assert!(proof.verify(&vk, &instances).is_ok());
 
         // test receiver decryption
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[0]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[0]) {
             Some(decrypted_note) => { assert_eq!(decrypted_note, note4); assert_eq!(&decrypted_note.memo(), &[4; 512]);},
             None => panic!("Note4 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[1]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[1]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note5),
             None => panic!("Note5 decryption failed"),
         }
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[2]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[2]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note6),
             None => panic!("Note6 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[3]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[3]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note7),
             None => panic!("Note7 decryption failed"),
         }
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[4]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[4]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note8),
             None => panic!("Note8 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[5]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[5]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note9),
             None => panic!("Note9 decryption failed"),
         }
@@ -637,7 +637,7 @@ mod tests
         assert!(proof.verify(&vk, &instances).is_ok());
 
         // verify proof using zeos verifier
-        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32;
+        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32 + 8 + 8;
         let mut inputs_str = "".to_string();
         for za in zactions
         {
