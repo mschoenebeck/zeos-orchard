@@ -3,6 +3,7 @@
 use rand::RngCore;
 use rustzeos::halo2::{Proof, ProvingKey};
 use crate::{
+//<<<<<<< HEAD
     action::{RawZAction, ZAction, ZA_MINTAUTH, ZA_MINTFT, ZA_MINTNFT, ZA_BURNAUTH},
     circuit::Instance,
     keys::SpendValidatingKey,
@@ -10,6 +11,18 @@ use crate::{
     tree::MerklePath,
     value::NoteValue,
     circuit::{Circuit, K}
+/*=======
+    action::Action,
+    address::Address,
+    bundle::commitments::{hash_bundle_auth_data, hash_bundle_txid_data},
+    circuit::{Instance, Proof, VerifyingKey},
+    keys::{IncomingViewingKey, OutgoingViewingKey, PreparedIncomingViewingKey},
+    note::Note,
+    note_encryption::OrchardDomain,
+    primitives::redpallas::{self, Binding, SpendAuth},
+    tree::Anchor,
+    value::{ValueCommitTrapdoor, ValueCommitment, ValueSum},
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
 };
 use halo2_proofs::circuit::Value;
 
@@ -118,10 +131,169 @@ impl Bundle
         (Proof::create(&pk, &circuits, &instances, rng).unwrap(), circuits, instances)
     }
 
+//<<<<<<< HEAD
     /// Prepares a bundle for private transaction by calculating proof, the list of zactions and the encrypted note data
     pub fn prepare<R: RngCore>(&self, mut rng: R) -> ((Proof, Vec<Circuit>, Vec<Instance>), Vec<ZAction>, Vec<TransmittedNoteCiphertext>)
     {
         (self.proof(&mut rng), self.zactions(), self.encrypted_notes(&mut rng))
+/*=======
+    /// Returns the authorization for this bundle.
+    ///
+    /// In the case of a `Bundle<Authorized>`, this is the proof and binding signature.
+    pub fn authorization(&self) -> &T {
+        &self.authorization
+    }
+
+    /// Construct a new bundle by applying a transformation that might fail
+    /// to the value balance.
+    pub fn try_map_value_balance<V0, E, F: FnOnce(V) -> Result<V0, E>>(
+        self,
+        f: F,
+    ) -> Result<Bundle<T, V0>, E> {
+        Ok(Bundle {
+            actions: self.actions,
+            flags: self.flags,
+            value_balance: f(self.value_balance)?,
+            anchor: self.anchor,
+            authorization: self.authorization,
+        })
+    }
+
+    /// Transitions this bundle from one authorization state to another.
+    pub fn map_authorization<R, U: Authorization>(
+        self,
+        context: &mut R,
+        mut spend_auth: impl FnMut(&mut R, &T, T::SpendAuth) -> U::SpendAuth,
+        step: impl FnOnce(&mut R, T) -> U,
+    ) -> Bundle<U, V> {
+        let authorization = self.authorization;
+        Bundle {
+            actions: self
+                .actions
+                .map(|a| a.map(|a_auth| spend_auth(context, &authorization, a_auth))),
+            flags: self.flags,
+            value_balance: self.value_balance,
+            anchor: self.anchor,
+            authorization: step(context, authorization),
+        }
+    }
+
+    /// Transitions this bundle from one authorization state to another.
+    pub fn try_map_authorization<R, U: Authorization, E>(
+        self,
+        context: &mut R,
+        mut spend_auth: impl FnMut(&mut R, &T, T::SpendAuth) -> Result<U::SpendAuth, E>,
+        step: impl FnOnce(&mut R, T) -> Result<U, E>,
+    ) -> Result<Bundle<U, V>, E> {
+        let authorization = self.authorization;
+        let new_actions = self
+            .actions
+            .into_iter()
+            .map(|a| a.try_map(|a_auth| spend_auth(context, &authorization, a_auth)))
+            .collect::<Result<Vec<_>, E>>()?;
+
+        Ok(Bundle {
+            actions: NonEmpty::from_vec(new_actions).unwrap(),
+            flags: self.flags,
+            value_balance: self.value_balance,
+            anchor: self.anchor,
+            authorization: step(context, authorization)?,
+        })
+    }
+
+    pub(crate) fn to_instances(&self) -> Vec<Instance> {
+        self.actions
+            .iter()
+            .map(|a| a.to_instance(self.flags, self.anchor))
+            .collect()
+    }
+
+    /// Performs trial decryption of each action in the bundle with each of the
+    /// specified incoming viewing keys, and returns a vector of each decrypted
+    /// note plaintext contents along with the index of the action from which it
+    /// was derived.
+    pub fn decrypt_outputs_with_keys(
+        &self,
+        keys: &[IncomingViewingKey],
+    ) -> Vec<(usize, IncomingViewingKey, Note, Address, [u8; 512])> {
+        let prepared_keys: Vec<_> = keys
+            .iter()
+            .map(|ivk| (ivk, PreparedIncomingViewingKey::new(ivk)))
+            .collect();
+        self.actions
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, action)| {
+                let domain = OrchardDomain::for_action(action);
+                prepared_keys.iter().find_map(|(ivk, prepared_ivk)| {
+                    try_note_decryption(&domain, prepared_ivk, action)
+                        .map(|(n, a, m)| (idx, (*ivk).clone(), n, a, m))
+                })
+            })
+            .collect()
+    }
+
+    /// Performs trial decryption of the action at `action_idx` in the bundle with the
+    /// specified incoming viewing key, and returns the decrypted note plaintext
+    /// contents if successful.
+    pub fn decrypt_output_with_key(
+        &self,
+        action_idx: usize,
+        key: &IncomingViewingKey,
+    ) -> Option<(Note, Address, [u8; 512])> {
+        let prepared_ivk = PreparedIncomingViewingKey::new(key);
+        self.actions.get(action_idx).and_then(move |action| {
+            let domain = OrchardDomain::for_action(action);
+            try_note_decryption(&domain, &prepared_ivk, action)
+        })
+    }
+
+    /// Performs trial decryption of each action in the bundle with each of the
+    /// specified outgoing viewing keys, and returns a vector of each decrypted
+    /// note plaintext contents along with the index of the action from which it
+    /// was derived.
+    pub fn recover_outputs_with_ovks(
+        &self,
+        keys: &[OutgoingViewingKey],
+    ) -> Vec<(usize, OutgoingViewingKey, Note, Address, [u8; 512])> {
+        self.actions
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, action)| {
+                let domain = OrchardDomain::for_action(action);
+                keys.iter().find_map(move |key| {
+                    try_output_recovery_with_ovk(
+                        &domain,
+                        key,
+                        action,
+                        action.cv_net(),
+                        &action.encrypted_note().out_ciphertext,
+                    )
+                    .map(|(n, a, m)| (idx, key.clone(), n, a, m))
+                })
+            })
+            .collect()
+    }
+
+    /// Attempts to decrypt the action at the specified index with the specified
+    /// outgoing viewing key, and returns the decrypted note plaintext contents
+    /// if successful.
+    pub fn recover_output_with_ovk(
+        &self,
+        action_idx: usize,
+        key: &OutgoingViewingKey,
+    ) -> Option<(Note, Address, [u8; 512])> {
+        self.actions.get(action_idx).and_then(move |action| {
+            let domain = OrchardDomain::for_action(action);
+            try_output_recovery_with_ovk(
+                &domain,
+                key,
+                action,
+                action.cv_net(),
+                &action.encrypted_note().out_ciphertext,
+            )
+        })
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
     }
 }
 
@@ -133,7 +305,7 @@ mod tests
     use super::{Bundle, RawZAction};
     use crate::{
         keys::{
-            SpendingKey, FullViewingKey, Scope::External
+            SpendingKey, FullViewingKey, Scope::External, PreparedIncomingViewingKey
         },
         note_encryption::{
             try_note_decryption, try_output_recovery_with_ovk
@@ -331,27 +503,27 @@ mod tests
         assert!(proof.verify(&vk, &instances).is_ok());
 
         // test receiver decryption
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[0]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[0]) {
             Some(decrypted_note) => { assert_eq!(decrypted_note, note4); assert_eq!(&decrypted_note.memo(), &[4; 512]);},
             None => panic!("Note4 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[1]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[1]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note5),
             None => panic!("Note5 decryption failed"),
         }
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[2]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[2]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note6),
             None => panic!("Note6 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[3]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[3]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note7),
             None => panic!("Note7 decryption failed"),
         }
-        match try_note_decryption(&fvk_bob.to_ivk(External), &encrypted_notes[4]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_bob.to_ivk(External)), &encrypted_notes[4]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note8),
             None => panic!("Note8 decryption failed"),
         }
-        match try_note_decryption(&fvk_alice.to_ivk(External), &encrypted_notes[5]) {
+        match try_note_decryption(&PreparedIncomingViewingKey::new(&fvk_alice.to_ivk(External)), &encrypted_notes[5]) {
             Some(decrypted_note) => assert_eq!(decrypted_note, note9),
             None => panic!("Note9 decryption failed"),
         }
@@ -637,7 +809,7 @@ mod tests
         assert!(proof.verify(&vk, &instances).is_ok());
 
         // verify proof using zeos verifier
-        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32;
+        const ZI_SIZE: usize = 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 32 + 32 + 8 + 8;
         let mut inputs_str = "".to_string();
         for za in zactions
         {

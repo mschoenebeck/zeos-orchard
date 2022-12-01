@@ -9,7 +9,7 @@ use crate::note_encryption::OUT_CIPHERTEXT_SIZE;
 use crate::tree::EMPTY_ROOTS;
 use crate::value::NoteValue;
 use crate::builder::HasMerkleTree;
-use crate::keys::IncomingViewingKey;
+use crate::keys::PreparedIncomingViewingKey;
 use crate::keys::OutgoingViewingKey;
 use crate::address::Address;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
@@ -65,7 +65,7 @@ impl TransmittedNoteCiphertextEx
     /// Try to decrypt note as receiver
     pub fn try_decrypt_as_receiver(
         &self,
-        ivk: &IncomingViewingKey
+        ivk: &PreparedIncomingViewingKey
     ) -> Option<NoteEx>
     {
         match try_note_decryption(ivk, &self.encrypted_note)
@@ -231,7 +231,7 @@ impl<'de> Deserialize<'de> for Note
                     .ok_or_else(|| de::Error::invalid_length(8, &self))?;
                 let mut memo = [0; 512];
                 assert_eq!(hex::decode_to_slice(memo_str, &mut memo), Ok(()));
-                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo))
+                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo).unwrap())
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Note, V::Error>
@@ -330,7 +330,7 @@ impl<'de> Deserialize<'de> for Note
                 let mut memo = [0; 512];
                 assert_eq!(hex::decode_to_slice(memo_str, &mut memo), Ok(()));
 
-                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo))
+                Ok(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo).unwrap())
             }
         }
 

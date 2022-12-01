@@ -2,8 +2,13 @@ use incrementalmerkletree::{bridgetree::BridgeTree, Hashable, Tree};
 use zeos_orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
+//<<<<<<< HEAD
     circuit::{Circuit, K},
-    keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
+//    keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
+//=======
+//    circuit::{ProvingKey, VerifyingKey},
+    keys::{FullViewingKey, PreparedIncomingViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
+//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     note::ExtractedNoteCommitment,
     note_encryption::OrchardDomain,
     tree::{MerkleHashOrchard, MerklePath},
@@ -58,7 +63,7 @@ fn bundle_chain() {
 
     // Create a shielded bundle spending the previous output.
     let shielded_bundle: Bundle<_, i64> = {
-        let ivk = fvk.to_ivk(Scope::External);
+        let ivk = PreparedIncomingViewingKey::new(&fvk.to_ivk(Scope::External));
         let (note, _, _) = shielding_bundle
             .actions()
             .iter()

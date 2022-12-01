@@ -20,8 +20,9 @@ use crate::{
     address::Address,
     primitives::redpallas::{self, SpendAuth},
     spec::{
-        commit_ivk, diversify_hash, extract_p, ka_orchard, prf_nf, to_base, to_scalar,
-        NonIdentityPallasPoint, NonZeroPallasBase, NonZeroPallasScalar, PrfExpand,
+        commit_ivk, diversify_hash, extract_p, ka_orchard, ka_orchard_prepared, prf_nf, to_base,
+        to_scalar, NonIdentityPallasPoint, NonZeroPallasBase, NonZeroPallasScalar,
+        PreparedNonIdentityBase, PreparedNonZeroScalar, PrfExpand,
     },
     zip32::{self, ChildIndex, ExtendedSpendingKey},
 };
@@ -553,7 +554,8 @@ impl DiversifierKey {
 pub struct Diversifier([u8; 11]);
 
 impl Diversifier {
-    pub(crate) fn from_bytes(d: [u8; 11]) -> Self {
+    /// Reads a diversifier from a byte array.
+    pub fn from_bytes(d: [u8; 11]) -> Self {
         Diversifier(d)
     }
 
@@ -627,7 +629,8 @@ impl KeyAgreementPrivateKey {
 
     /// Returns the payment address for this key corresponding to the given diversifier.
     fn address(&self, d: Diversifier) -> Address {
-        let pk_d = DiversifiedTransmissionKey::derive_inner(self, &d);
+        let prepared_ivk = PreparedIncomingViewingKey::new_inner(self);
+        let pk_d = DiversifiedTransmissionKey::derive(&prepared_ivk, &d);
         Address::from_parts(d, pk_d)
     }
 }
@@ -704,6 +707,32 @@ impl IncomingViewingKey {
     }
 }
 
+/// An Orchard incoming viewing key that has been precomputed for trial decryption.
+#[derive(Clone, Debug)]
+pub struct PreparedIncomingViewingKey(PreparedNonZeroScalar);
+
+impl memuse::DynamicUsage for PreparedIncomingViewingKey {
+    fn dynamic_usage(&self) -> usize {
+        self.0.dynamic_usage()
+    }
+
+    fn dynamic_usage_bounds(&self) -> (usize, Option<usize>) {
+        self.0.dynamic_usage_bounds()
+    }
+}
+
+impl PreparedIncomingViewingKey {
+    /// Performs the necessary precomputations to use an `IncomingViewingKey` for note
+    /// decryption.
+    pub fn new(ivk: &IncomingViewingKey) -> Self {
+        Self::new_inner(&ivk.ivk)
+    }
+
+    fn new_inner(ivk: &KeyAgreementPrivateKey) -> Self {
+        Self(PreparedNonZeroScalar::new(&ivk.0))
+    }
+}
+
 /// A key that provides the capability to recover outgoing transaction information from
 /// the block chain.
 ///
@@ -753,13 +782,9 @@ impl DiversifiedTransmissionKey {
     /// Defined in [Zcash Protocol Spec § 4.2.3: Orchard Key Components][orchardkeycomponents].
     ///
     /// [orchardkeycomponents]: https://zips.z.cash/protocol/nu5.pdf#orchardkeycomponents
-    pub(crate) fn derive(ivk: &IncomingViewingKey, d: &Diversifier) -> Self {
-        Self::derive_inner(&ivk.ivk, d)
-    }
-
-    fn derive_inner(ivk: &KeyAgreementPrivateKey, d: &Diversifier) -> Self {
-        let g_d = diversify_hash(d.as_array());
-        DiversifiedTransmissionKey(ka_orchard(&ivk.0, &g_d))
+    pub(crate) fn derive(ivk: &PreparedIncomingViewingKey, d: &Diversifier) -> Self {
+        let g_d = PreparedNonIdentityBase::new(diversify_hash(d.as_array()));
+        DiversifiedTransmissionKey(ka_orchard_prepared(&ivk.0, &g_d))
     }
 
     /// $abst_P(bytes)$
@@ -838,6 +863,20 @@ impl EphemeralPublicKey {
 
     pub(crate) fn agree(&self, ivk: &IncomingViewingKey) -> SharedSecret {
         SharedSecret(ka_orchard(&ivk.ivk.0, &self.0))
+    }
+}
+
+/// An Orchard ephemeral public key that has been precomputed for trial decryption.
+#[derive(Clone, Debug)]
+pub struct PreparedEphemeralPublicKey(PreparedNonIdentityBase);
+
+impl PreparedEphemeralPublicKey {
+    pub(crate) fn new(epk: EphemeralPublicKey) -> Self {
+        PreparedEphemeralPublicKey(PreparedNonIdentityBase::new(epk.0))
+    }
+
+    pub(crate) fn agree(&self, ivk: &PreparedIncomingViewingKey) -> SharedSecret {
+        SharedSecret(ka_orchard_prepared(&ivk.0, &self.0))
     }
 }
 
@@ -1055,7 +1094,12 @@ mod tests {
                 rho,
                 RandomSeed::from_bytes(tv.note_rseed, &rho).unwrap(),
                 [0; 512]
-            );
+//<<<<<<< HEAD
+//            );
+//=======
+            )
+            .unwrap();
+//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 
             let cmx: ExtractedNoteCommitment = note.commitment().into();
             assert_eq!(cmx.to_bytes(), tv.note_cmx);

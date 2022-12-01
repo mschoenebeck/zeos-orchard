@@ -11,7 +11,14 @@ use crate::keys::FullViewingKey;
 use crate::bundle::Bundle;
 use crate::contract::NoteEx;
 
+//<<<<<<< HEAD
 extern crate serde_json;
+//=======
+//use ff::Field;
+//use nonempty::NonEmpty;
+//use pasta_curves::pallas;
+//use rand::{prelude::SliceRandom, CryptoRng, RngCore};
+//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 
 use rand::rngs::OsRng;
 use rustzeos::halo2::Proof;
@@ -38,6 +45,7 @@ pub fn char_to_value(c: u8) -> u8
     return 0;
  }
 
+//<<<<<<< HEAD
 /// Rust equivalent of: cdt/libraries/eosiolib/core/eosio/name.hpp -> name() constructor
 /// See also: https://github.com/AntelopeIO/cdt/blob/c010d6fae2656f212f78d01c41812734934eb54c/libraries/eosiolib/core/eosio/name.hpp#L77
 pub fn eos_name_to_value(str: String) -> u64
@@ -68,6 +76,54 @@ pub fn eos_name_to_value(str: String) -> u64
                 return 0;
             }
             value |= v;
+/*=======
+/// Information about a specific note to be spent in an [`Action`].
+#[derive(Debug)]
+pub struct SpendInfo {
+    pub(crate) dummy_sk: Option<SpendingKey>,
+    pub(crate) fvk: FullViewingKey,
+    pub(crate) scope: Scope,
+    pub(crate) note: Note,
+    pub(crate) merkle_path: MerklePath,
+}
+
+impl SpendInfo {
+    /// This constructor is public to enable creation of custom builders.
+    /// If you are not creating a custom builder, use [`Builder::add_spend`] instead.
+    ///
+    /// Creates a `SpendInfo` from note, full viewing key owning the note,
+    /// and merkle path witness of the note.
+    ///
+    /// Returns `None` if the `fvk` does not own the `note`.
+    ///
+    /// [`Builder::add_spend`]: Builder::add_spend
+    pub fn new(fvk: FullViewingKey, note: Note, merkle_path: MerklePath) -> Option<Self> {
+        let scope = fvk.scope_for_address(&note.recipient())?;
+        Some(SpendInfo {
+            dummy_sk: None,
+            fvk,
+            scope,
+            note,
+            merkle_path,
+        })
+    }
+
+    /// Defined in [Zcash Protocol Spec § 4.8.3: Dummy Notes (Orchard)][orcharddummynotes].
+    ///
+    /// [orcharddummynotes]: https://zips.z.cash/protocol/nu5.pdf#orcharddummynotes
+    fn dummy(rng: &mut impl RngCore) -> Self {
+        let (sk, fvk, note) = Note::dummy(rng, None);
+        let merkle_path = MerklePath::dummy(rng);
+
+        SpendInfo {
+            dummy_sk: Some(sk),
+            fvk,
+            // We use external scope to avoid unnecessary derivations, because the dummy
+            // note's spending key is random and thus scoping is irrelevant.
+            scope: Scope::External,
+            note,
+            merkle_path,
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
         }
     value
 }
@@ -107,10 +163,68 @@ pub struct EOSActionDesc
     /// ...
     pub(crate) action: EOSAction,
 
+//<<<<<<< HEAD
     /// If this action contains zactions it MUST be wrapped in a step() call. In this case
     /// all ZActionDescs in this list are parsed, processed and their corresponding ZActions
     /// are serialized and added to the front of the serialized 'data' String of this EOSAction.
     pub(crate) zaction_descs: Vec<ZActionDesc>
+/*=======
+    /// Returns the value sum for this action.
+    fn value_sum(&self) -> ValueSum {
+        self.spend.note.value() - self.output.value
+    }
+
+    /// Builds the action.
+    ///
+    /// Defined in [Zcash Protocol Spec § 4.7.3: Sending Notes (Orchard)][orchardsend].
+    ///
+    /// [orchardsend]: https://zips.z.cash/protocol/nu5.pdf#orchardsend
+    fn build(self, mut rng: impl RngCore) -> (Action<SigningMetadata>, Circuit) {
+        let v_net = self.value_sum();
+        let cv_net = ValueCommitment::derive(v_net, self.rcv.clone());
+
+        let nf_old = self.spend.note.nullifier(&self.spend.fvk);
+        let ak: SpendValidatingKey = self.spend.fvk.clone().into();
+        let alpha = pallas::Scalar::random(&mut rng);
+        let rk = ak.randomize(&alpha);
+
+        let note = Note::new(self.output.recipient, self.output.value, nf_old, &mut rng);
+        let cm_new = note.commitment();
+        let cmx = cm_new.into();
+
+        let encryptor = OrchardNoteEncryption::new(
+            self.output.ovk,
+            note,
+            self.output.recipient,
+            self.output.memo.unwrap_or_else(|| {
+                let mut memo = [0; 512];
+                memo[0] = 0xf6;
+                memo
+            }),
+        );
+
+        let encrypted_note = TransmittedNoteCiphertext {
+            epk_bytes: encryptor.epk().to_bytes().0,
+            enc_ciphertext: encryptor.encrypt_note_plaintext(),
+            out_ciphertext: encryptor.encrypt_outgoing_plaintext(&cv_net, &cmx, &mut rng),
+        };
+
+        (
+            Action::from_parts(
+                nf_old,
+                rk,
+                cmx,
+                encrypted_note,
+                cv_net,
+                SigningMetadata {
+                    dummy_ask: self.spend.dummy_sk.as_ref().map(SpendAuthorizingKey::from),
+                    parts: SigningParts { ak, alpha },
+                },
+            ),
+            Circuit::from_action_context_unchecked(self.spend, note, alpha, self.rcv),
+        )
+    }
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
 }
 
 /// ...
@@ -139,8 +253,171 @@ impl TransactionBuilder
         TransactionBuilder { leaf_count }
     }
 
+//<<<<<<< HEAD
     /// ...
     pub async fn build_transaction<D: HasMerkleTree>(
+/*=======
+    /// Adds an address which will receive funds in this transaction.
+    pub fn add_recipient(
+        &mut self,
+        ovk: Option<OutgoingViewingKey>,
+        recipient: Address,
+        value: NoteValue,
+        memo: Option<[u8; 512]>,
+    ) -> Result<(), &'static str> {
+        if !self.flags.outputs_enabled() {
+            return Err("Outputs are not enabled for this builder");
+        }
+
+        self.recipients.push(RecipientInfo {
+            ovk,
+            recipient,
+            value,
+            memo,
+        });
+
+        Ok(())
+    }
+
+    /// The net value of the bundle to be built. The value of all spends,
+    /// minus the value of all outputs.
+    ///
+    /// Useful for balancing a transaction, as the value balance of an individual bundle
+    /// can be non-zero. Each bundle's value balance is [added] to the transparent
+    /// transaction value pool, which [must not have a negative value]. (If it were
+    /// negative, the transaction would output more value than it receives in inputs.)
+    ///
+    /// [added]: https://zips.z.cash/protocol/protocol.pdf#orchardbalance
+    /// [must not have a negative value]: https://zips.z.cash/protocol/protocol.pdf#transactions
+    pub fn value_balance<V: TryFrom<i64>>(&self) -> Result<V, value::OverflowError> {
+        let value_balance = self
+            .spends
+            .iter()
+            .map(|spend| spend.note.value() - NoteValue::zero())
+            .chain(
+                self.recipients
+                    .iter()
+                    .map(|recipient| NoteValue::zero() - recipient.value),
+            )
+            .fold(Some(ValueSum::zero()), |acc, note_value| acc? + note_value)
+            .ok_or(OverflowError)?;
+        i64::try_from(value_balance).and_then(|i| V::try_from(i).map_err(|_| value::OverflowError))
+    }
+
+    /// Builds a bundle containing the given spent notes and recipients.
+    ///
+    /// The returned bundle will have no proof or signatures; these can be applied with
+    /// [`Bundle::create_proof`] and [`Bundle::apply_signatures`] respectively.
+    pub fn build<V: TryFrom<i64>>(
+        mut self,
+        mut rng: impl RngCore,
+    ) -> Result<Bundle<InProgress<Unproven, Unauthorized>, V>, Error> {
+        // Pair up the spends and recipients, extending with dummy values as necessary.
+        let pre_actions: Vec<_> = {
+            let num_spends = self.spends.len();
+            let num_recipients = self.recipients.len();
+            let num_actions = [num_spends, num_recipients, MIN_ACTIONS]
+                .iter()
+                .max()
+                .cloned()
+                .unwrap();
+
+            self.spends.extend(
+                iter::repeat_with(|| SpendInfo::dummy(&mut rng)).take(num_actions - num_spends),
+            );
+            self.recipients.extend(
+                iter::repeat_with(|| RecipientInfo::dummy(&mut rng))
+                    .take(num_actions - num_recipients),
+            );
+
+            // Shuffle the spends and recipients, so that learning the position of a
+            // specific spent note or output note doesn't reveal anything on its own about
+            // the meaning of that note in the transaction context.
+            self.spends.shuffle(&mut rng);
+            self.recipients.shuffle(&mut rng);
+
+            self.spends
+                .into_iter()
+                .zip(self.recipients.into_iter())
+                .map(|(spend, recipient)| ActionInfo::new(spend, recipient, &mut rng))
+                .collect()
+        };
+
+        // Move some things out of self that we will need.
+        let flags = self.flags;
+        let anchor = self.anchor;
+
+        // Determine the value balance for this bundle, ensuring it is valid.
+        let value_balance = pre_actions
+            .iter()
+            .fold(Some(ValueSum::zero()), |acc, action| {
+                acc? + action.value_sum()
+            })
+            .ok_or(OverflowError)?;
+
+        let result_value_balance: V = i64::try_from(value_balance)
+            .map_err(Error::ValueSum)
+            .and_then(|i| V::try_from(i).map_err(|_| Error::ValueSum(value::OverflowError)))?;
+
+        // Compute the transaction binding signing key.
+        let bsk = pre_actions
+            .iter()
+            .map(|a| &a.rcv)
+            .sum::<ValueCommitTrapdoor>()
+            .into_bsk();
+
+        // Create the actions.
+        let (actions, circuits): (Vec<_>, Vec<_>) =
+            pre_actions.into_iter().map(|a| a.build(&mut rng)).unzip();
+
+        // Verify that bsk and bvk are consistent.
+        let bvk = (actions.iter().map(|a| a.cv_net()).sum::<ValueCommitment>()
+            - ValueCommitment::derive(value_balance, ValueCommitTrapdoor::zero()))
+        .into_bvk();
+        assert_eq!(redpallas::VerificationKey::from(&bsk), bvk);
+
+        Ok(Bundle::from_parts(
+            NonEmpty::from_vec(actions).unwrap(),
+            flags,
+            result_value_balance,
+            anchor,
+            InProgress {
+                proof: Unproven { circuits },
+                sigs: Unauthorized { bsk },
+            },
+        ))
+    }
+}
+
+/// Marker trait representing bundle signatures in the process of being created.
+pub trait InProgressSignatures: fmt::Debug {
+    /// The authorization type of an Orchard action in the process of being authorized.
+    type SpendAuth: fmt::Debug;
+}
+
+/// Marker for a bundle in the process of being built.
+#[derive(Clone, Debug)]
+pub struct InProgress<P, S: InProgressSignatures> {
+    proof: P,
+    sigs: S,
+}
+
+impl<P: fmt::Debug, S: InProgressSignatures> Authorization for InProgress<P, S> {
+    type SpendAuth = S::SpendAuth;
+}
+
+/// Marker for a bundle without a proof.
+///
+/// This struct contains the private data needed to create a [`Proof`] for a [`Bundle`].
+#[derive(Clone, Debug)]
+pub struct Unproven {
+    circuits: Vec<Circuit>,
+}
+
+impl<S: InProgressSignatures> InProgress<Unproven, S> {
+    /// Creates the proof for this bundle.
+    pub fn create_proof(
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
         &self,
         sk: &SpendingKey,
         notes: &mut Vec<NoteEx>,
@@ -499,10 +776,41 @@ mod tests
     use super::{ZActionDesc, EOSActionDesc, EOSAuthorization};
 
     #[test]
+//<<<<<<< HEAD
     fn test_liquidstorage_uri()
     {
         let val = get_liquidstorage_uri("hello".to_string(), false);
         assert_eq!(val, "ipfs://zb2rhZfjRh2FHHB2RkHVEvL2vJnCTcu7kwRqgVsf9gpkLgteo");
+/*=======
+    fn shielding_bundle() {
+        let pk = ProvingKey::build();
+        let mut rng = OsRng;
+
+        let sk = SpendingKey::random(&mut rng);
+        let fvk = FullViewingKey::from(&sk);
+        let recipient = fvk.address_at(0u32, Scope::External);
+
+        let mut builder = Builder::new(
+            Flags::from_parts(true, true),
+            EMPTY_ROOTS[MERKLE_DEPTH_ORCHARD].into(),
+        );
+
+        builder
+            .add_recipient(None, recipient, NoteValue::from_raw(5000), None)
+            .unwrap();
+        let balance: i64 = builder.value_balance().unwrap();
+        assert_eq!(balance, -5000);
+
+        let bundle: Bundle<Authorized, i64> = builder
+            .build(&mut rng)
+            .unwrap()
+            .create_proof(&pk, &mut rng)
+            .unwrap()
+            .prepare(&mut rng, [0; 32])
+            .finalize()
+            .unwrap();
+        assert_eq!(bundle.value_balance(), &(-5000))
+>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
     }
 
     #[test]

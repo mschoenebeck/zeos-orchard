@@ -34,6 +34,7 @@ impl Address {
         Address { d, pk_d }
     }
 
+//<<<<<<< HEAD
     /// creates a dummy address
     pub fn dummy(rng: &mut impl RngCore) -> Self
     {
@@ -42,7 +43,10 @@ impl Address {
         fvk.address_at(0u32, Scope::External)
     }
 
-    /// returns the diversifier
+//    /// returns the diversifier
+//=======
+    /// Returns the [`Diversifier`] for this `Address`.
+//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     pub fn diversifier(&self) -> Diversifier {
         self.d
     }
