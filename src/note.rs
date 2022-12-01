@@ -37,24 +37,16 @@ impl RandomSeed {
         }
     }
 
-//<<<<<<< HEAD
-//    /// from bytes
-//=======
     /// Reads a note's random seed from bytes, given the note's nullifier.
     ///
     /// Returns `None` if the nullifier is not for the same note as the seed.
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     pub fn from_bytes(rseed: [u8; 32], rho: &Nullifier) -> CtOption<Self> {
         let rseed = RandomSeed(rseed);
         let esk = rseed.esk_inner(rho);
         CtOption::new(rseed, esk.is_some())
     }
 
-//<<<<<<< HEAD
-//    /// as bytes
-//=======
     /// Returns the byte array corresponding to this seed.
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
@@ -134,9 +126,6 @@ impl PartialEq for Note {
 impl Eq for Note {}
 
 impl Note {
-//<<<<<<< HEAD
-//    pub(crate) fn from_parts(
-//=======
     /// Creates a `Note` from its component parts.
     ///
     /// Returns `None` if a valid [`NoteCommitment`] cannot be derived from the note.
@@ -152,7 +141,6 @@ impl Note {
     ///
     /// [Section 4.19]: https://zips.z.cash/protocol/protocol.pdf#saplingandorchardinband
     pub fn from_parts(
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
         header: u64,
         recipient: Address,
         d1: NoteValue,
@@ -162,13 +150,8 @@ impl Note {
         rho: Nullifier,
         rseed: RandomSeed,
         memo: [u8; 512]
-//<<<<<<< HEAD
-//    ) -> Self {
-//        Note {
-//=======
     ) -> CtOption<Self> {
         let note = Note {
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
             header,
             recipient,
             d1,
@@ -178,12 +161,8 @@ impl Note {
             rho,
             rseed,
             memo
-//<<<<<<< HEAD
-//        }
-//=======
         };
         CtOption::new(note, note.commitment_inner().is_some())
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     }
 
     /// Generates a new note.
@@ -203,25 +182,10 @@ impl Note {
         memo: [u8; 512]
     ) -> Self {
         loop {
-/*<<<<<<< HEAD
-            let note = Note {
-                header,
-                recipient,
-                d1,
-                d2,
-                sc,
-                nft,
-                rho,
-                rseed: RandomSeed::random(&mut rng, &rho),
-                memo
-            };
-            if note.commitment_inner().is_some().into() {
-                break note;
-=======*/
             let note = Note::from_parts(header, recipient, d1, d2, sc, nft, rho, RandomSeed::random(&mut rng, &rho), memo);
-            if note.is_some().into() {
+            if note.is_some().into()
+            {
                 break note.unwrap();
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
             }
         }
     }

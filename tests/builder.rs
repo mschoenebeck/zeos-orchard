@@ -2,13 +2,8 @@ use incrementalmerkletree::{bridgetree::BridgeTree, Hashable, Tree};
 use zeos_orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
-//<<<<<<< HEAD
     circuit::{Circuit, K},
-//    keys::{FullViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
-//=======
-//    circuit::{ProvingKey, VerifyingKey},
     keys::{FullViewingKey, PreparedIncomingViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
     note::ExtractedNoteCommitment,
     note_encryption::OrchardDomain,
     tree::{MerkleHashOrchard, MerklePath},
@@ -16,7 +11,6 @@ use zeos_orchard::{
     Bundle, Note,
 };
 use rand::rngs::OsRng;
-//use zcash_note_encryption::try_note_decryption;
 use rustzeos::halo2::{ProvingKey, VerifyingKey};
 
 fn verify_bundle(bundle: &Bundle<Authorized, i64>, vk: &VerifyingKey) {

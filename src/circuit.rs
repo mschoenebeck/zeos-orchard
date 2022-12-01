@@ -20,7 +20,6 @@ use self::{
     note_commit::{NoteCommitChip, NoteCommitConfig},
 };
 use crate::{
-//    builder::SpendInfo,
     constants::{
         OrchardCommitDomains, OrchardFixedBases, OrchardFixedBasesFull, OrchardHashDomains,
         MERKLE_DEPTH_ORCHARD,
@@ -131,71 +130,6 @@ pub struct Circuit {
     pub rcm_c: Value<NoteCommitTrapdoor>,
     pub acc_c: Value<NoteValue>,
 }
-
-/*impl Circuit {
-    /// This constructor is public to enable creation of custom builders.
-    /// If you are not creating a custom builder, use [`Builder`] to compose
-    /// and authorize a transaction.
-    ///
-    /// Constructs a `Circuit` from the following components:
-    /// - `spend`: [`SpendInfo`] of the note spent in scope of the action
-    /// - `output_note`: a note created in scope of the action
-    /// - `alpha`: a scalar used for randomization of the action spend validating key
-    /// - `rcv`: trapdoor for the action value commitment
-    ///
-    /// Returns `None` if the `rho` of the `output_note` is not equal
-    /// to the nullifier of the spent note.
-    ///
-    /// [`SpendInfo`]: crate::builder::SpendInfo
-    /// [`Builder`]: crate::builder::Builder
-    pub fn from_action_context(
-        spend: SpendInfo,
-        output_note: Note,
-        alpha: pallas::Scalar,
-        rcv: ValueCommitTrapdoor,
-    ) -> Option<Circuit> {
-        (spend.note.nullifier(&spend.fvk) == output_note.rho())
-            .then(|| Self::from_action_context_unchecked(spend, output_note, alpha, rcv))
-    }
-
-    pub(crate) fn from_action_context_unchecked(
-        spend: SpendInfo,
-        output_note: Note,
-        alpha: pallas::Scalar,
-        rcv: ValueCommitTrapdoor,
-    ) -> Circuit {
-        let sender_address = spend.note.recipient();
-        let rho_old = spend.note.rho();
-        let psi_old = spend.note.rseed().psi(&rho_old);
-        let rcm_old = spend.note.rseed().rcm(&rho_old);
-
-        let rho_new = output_note.rho();
-        let psi_new = output_note.rseed().psi(&rho_new);
-        let rcm_new = output_note.rseed().rcm(&rho_new);
-
-        Circuit {
-            path: Value::known(spend.merkle_path.auth_path()),
-            pos: Value::known(spend.merkle_path.position()),
-            g_d_old: Value::known(sender_address.g_d()),
-            pk_d_old: Value::known(*sender_address.pk_d()),
-            v_old: Value::known(spend.note.value()),
-            rho_old: Value::known(rho_old),
-            psi_old: Value::known(psi_old),
-            rcm_old: Value::known(rcm_old),
-            cm_old: Value::known(spend.note.commitment()),
-            alpha: Value::known(alpha),
-            ak: Value::known(spend.fvk.clone().into()),
-            nk: Value::known(*spend.fvk.nk()),
-            rivk: Value::known(spend.fvk.rivk(spend.scope)),
-            g_d_new: Value::known(output_note.recipient().g_d()),
-            pk_d_new: Value::known(*output_note.recipient().pk_d()),
-            v_new: Value::known(output_note.value()),
-            psi_new: Value::known(psi_new),
-            rcm_new: Value::known(rcm_new),
-            rcv: Value::known(rcv),
-        }
-    }
-}*/
 
 impl plonk::Circuit<pallas::Base> for Circuit {
     type Config = Config;
@@ -1043,114 +977,12 @@ impl Instance {
     }
 }
 
-//<<<<<<< HEAD
 impl rustzeos::halo2::Instance for Instance{
     fn to_halo2_instance_vec(&self) -> Vec<Vec<vesta::Scalar>> {
         let instance = self.to_halo2_instance()[0].to_vec();
         let mut instances = Vec::new();
         instances.push(instance);
         instances
-/*=======
-/// A proof of the validity of an Orchard [`Bundle`].
-///
-/// [`Bundle`]: crate::bundle::Bundle
-#[derive(Clone)]
-pub struct Proof(Vec<u8>);
-
-impl fmt::Debug for Proof {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            f.debug_tuple("Proof").field(&self.0).finish()
-        } else {
-            // By default, only show the proof length, not its contents.
-            f.debug_tuple("Proof")
-                .field(&format_args!("{} bytes", self.0.len()))
-                .finish()
-        }
-    }
-}
-
-impl AsRef<[u8]> for Proof {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl DynamicUsage for Proof {
-    fn dynamic_usage(&self) -> usize {
-        self.0.dynamic_usage()
-    }
-
-    fn dynamic_usage_bounds(&self) -> (usize, Option<usize>) {
-        self.0.dynamic_usage_bounds()
-    }
-}
-
-impl Proof {
-    /// Creates a proof for the given circuits and instances.
-    pub fn create(
-        pk: &ProvingKey,
-        circuits: &[Circuit],
-        instances: &[Instance],
-        mut rng: impl RngCore,
-    ) -> Result<Self, plonk::Error> {
-        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance()).collect();
-        let instances: Vec<Vec<_>> = instances
-            .iter()
-            .map(|i| i.iter().map(|c| &c[..]).collect())
-            .collect();
-        let instances: Vec<_> = instances.iter().map(|i| &i[..]).collect();
-
-        let mut transcript = Blake2bWrite::<_, vesta::Affine, _>::init(vec![]);
-        plonk::create_proof(
-            &pk.params,
-            &pk.pk,
-            circuits,
-            &instances,
-            &mut rng,
-            &mut transcript,
-        )?;
-        Ok(Proof(transcript.finalize()))
-    }
-
-    /// Verifies this proof with the given instances.
-    pub fn verify(&self, vk: &VerifyingKey, instances: &[Instance]) -> Result<(), plonk::Error> {
-        let instances: Vec<_> = instances.iter().map(|i| i.to_halo2_instance()).collect();
-        let instances: Vec<Vec<_>> = instances
-            .iter()
-            .map(|i| i.iter().map(|c| &c[..]).collect())
-            .collect();
-        let instances: Vec<_> = instances.iter().map(|i| &i[..]).collect();
-
-        let strategy = SingleVerifier::new(&vk.params);
-        let mut transcript = Blake2bRead::init(&self.0[..]);
-        plonk::verify_proof(&vk.params, &vk.vk, strategy, &instances, &mut transcript)
-    }
-
-    /// Adds this proof to the given batch for verification with the given instances.
-    ///
-    /// Use this API if you want more control over how proof batches are processed. If you
-    /// just want to batch-validate Orchard bundles, use [`bundle::BatchValidator`].
-    ///
-    /// [`bundle::BatchValidator`]: crate::bundle::BatchValidator
-    pub fn add_to_batch(&self, batch: &mut BatchVerifier<vesta::Affine>, instances: Vec<Instance>) {
-        let instances = instances
-            .iter()
-            .map(|i| {
-                i.to_halo2_instance()
-                    .into_iter()
-                    .map(|c| c.into_iter().collect())
-                    .collect()
-            })
-            .collect();
-
-        batch.add_proof(instances, self.0.clone());
-    }
-
-    /// Constructs a new Proof value.
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Proof(bytes)
->>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
     }
 }
 

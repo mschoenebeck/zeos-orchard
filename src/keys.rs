@@ -1094,12 +1094,7 @@ mod tests {
                 rho,
                 RandomSeed::from_bytes(tv.note_rseed, &rho).unwrap(),
                 [0; 512]
-//<<<<<<< HEAD
-//            );
-//=======
-            )
-            .unwrap();
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
+            ).unwrap();
 
             let cmx: ExtractedNoteCommitment = note.commitment().into();
             assert_eq!(cmx.to_bytes(), tv.note_cmx);

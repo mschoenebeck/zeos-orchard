@@ -17,19 +17,10 @@
 // Catch documentation errors caused by code changes.
 #![deny(broken_intra_doc_links)]
 #![deny(unsafe_code)]
-// TODO: #![deny(missing_docs)]
-
-//#[cfg(feature = "alloc")]
-//extern crate alloc;
-//#[cfg(feature = "alloc")]
-//use alloc::vec::Vec;
+#![deny(missing_docs)]
 
 use core::convert::TryInto;
 
-//use chacha20::{
-//    cipher::{NewCipher, StreamCipher, StreamCipherSeek},
-//    ChaCha20,
-//};
 use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
@@ -451,35 +442,15 @@ where
     let memo = plaintext[116..NOTE_PLAINTEXT_SIZE].try_into().unwrap();
 
     let pk_d = get_validated_pk_d(&diversifier)?;
-
     let recipient = Address::from_parts(diversifier, pk_d);
-//<<<<<<< HEAD
-//    let note = Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo);
-//    Some(note)
-//=======
-//    let note = Option::from(Note::from_parts(recipient, value, domain.rho, rseed))?;
-//    Some((note, recipient))
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
-    Option::from(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo).unwrap())
+    Some(Note::from_parts(header, recipient, d1, d2, sc, nft, rho, rseed, memo).unwrap())
 }
 
 /// Orchard-specific note encryption logic.
 #[derive(Debug)]
-pub struct OrchardDomain {
-}
-/*
-impl memuse::DynamicUsage for OrchardDomain {
-    fn dynamic_usage(&self) -> usize {
-        self.rho.dynamic_usage()
-    }
+pub struct OrchardDomain {}
 
-    fn dynamic_usage_bounds(&self) -> (usize, Option<usize>) {
-        self.rho.dynamic_usage_bounds()
-    }
-}
-*/
 impl OrchardDomain {
-//<<<<<<< HEAD
     /// Derives the `EphemeralSecretKey` corresponding to this note.
     ///
     /// Returns `None` if the note was created prior to [ZIP 212], and doesn't have a
@@ -487,38 +458,6 @@ impl OrchardDomain {
     ///
     /// [ZIP 212]: https://zips.z.cash/zip-0212
     pub fn derive_esk(note: &Note) -> Option<EphemeralSecretKey> {
-/*=======
-    /// Constructs a domain that can be used to trial-decrypt this action's output note.
-    pub fn for_action<T>(act: &Action<T>) -> Self {
-        OrchardDomain {
-            rho: *act.nullifier(),
-        }
-    }
-
-    /// Constructs a domain from a nullifier.
-    pub fn for_nullifier(nullifier: Nullifier) -> Self {
-        OrchardDomain { rho: nullifier }
-    }
-}
-
-impl Domain for OrchardDomain {
-    type EphemeralSecretKey = EphemeralSecretKey;
-    type EphemeralPublicKey = EphemeralPublicKey;
-    type PreparedEphemeralPublicKey = PreparedEphemeralPublicKey;
-    type SharedSecret = SharedSecret;
-    type SymmetricKey = Hash;
-    type Note = Note;
-    type Recipient = Address;
-    type DiversifiedTransmissionKey = DiversifiedTransmissionKey;
-    type IncomingViewingKey = PreparedIncomingViewingKey;
-    type OutgoingViewingKey = OutgoingViewingKey;
-    type ValueCommitment = ValueCommitment;
-    type ExtractedCommitment = ExtractedNoteCommitment;
-    type ExtractedCommitmentBytes = [u8; 32];
-    type Memo = [u8; 512]; // TODO use a more interesting type
-
-    fn derive_esk(note: &Self::Note) -> Option<Self::EphemeralSecretKey> {
->>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
         Some(note.esk())
     }
 
@@ -531,22 +470,11 @@ impl Domain for OrchardDomain {
         PreparedEphemeralPublicKey::new(epk)
     }
 
-//<<<<<<< HEAD
     /// Derives `EphemeralPublicKey` from `esk` and the note's diversifier.
     pub fn ka_derive_public(
         note: &Note,
         esk: &EphemeralSecretKey,
-    ) -> EphemeralPublicKey {
-/*=======
-    fn prepare_epk(epk: Self::EphemeralPublicKey) -> Self::PreparedEphemeralPublicKey {
-        PreparedEphemeralPublicKey::new(epk)
-    }
-
-    fn ka_derive_public(
-        note: &Self::Note,
-        esk: &Self::EphemeralSecretKey,
-    ) -> Self::EphemeralPublicKey {
->>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5*/
+    ) -> EphemeralPublicKey{
         esk.derive_public(note.recipient().g_d())
     }
 
@@ -561,15 +489,9 @@ impl Domain for OrchardDomain {
     /// Derives the `SharedSecret` from the recipient's information during note trial
     /// decryption.
     fn ka_agree_dec(
-//<<<<<<< HEAD
         ivk: &PreparedIncomingViewingKey,
         epk: &PreparedEphemeralPublicKey
     ) -> SharedSecret {
-//=======
-//        ivk: &Self::IncomingViewingKey,
-//        epk: &Self::PreparedEphemeralPublicKey,
-//    ) -> Self::SharedSecret {
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
         epk.agree(ivk)
     }
 
@@ -735,11 +657,7 @@ mod tests {
     use crate::{
         keys::{
             DiversifiedTransmissionKey, Diversifier, EphemeralSecretKey, IncomingViewingKey,
-//<<<<<<< HEAD
             OutgoingViewingKey, PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External
-//=======
-//            OutgoingViewingKey, PreparedIncomingViewingKey,
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
         },
         note::{NT_FT, Nullifier, RandomSeed, TransmittedNoteCiphertext},
         value::{NoteValue},
@@ -794,14 +712,8 @@ mod tests {
             //let ock = prf_ock_orchard(&ovk, &ephemeral_key);
             //assert_eq!(ock.as_ref(), tv.ock);
 
-//<<<<<<< HEAD
             let note_enc = NoteEncryption::new(Some(ovk.clone()), note);
             let mut rng = OsRng.clone();
-//=======
-//            let recipient = Address::from_parts(d, pk_d);
-//            let note = Note::from_parts(recipient, value, rho, rseed).unwrap();
-//            assert_eq!(ExtractedNoteCommitment::from(note.commitment()), cmx);
-//>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 
             let encrypted_note = TransmittedNoteCiphertext {
                 epk_bytes: ephemeral_key.0,
