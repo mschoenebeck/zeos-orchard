@@ -1,11 +1,6 @@
 [package]
-#<<<<<<< HEAD
 name = "zeos_orchard"
-#version = "0.2.0"
-#=======
-#name = "orchard"
 version = "0.3.0"
-#>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 authors = [
     "Sean Bowe <sean@electriccoin.co>",
     "Jack Grigg <jack@electriccoin.co>",
@@ -35,33 +30,19 @@ bitvec = "1"
 blake2b_simd = "1"
 ff = "0.12"
 fpe = "0.5"
-#<<<<<<< HEAD
-#group = "0.12"
+group = { version = "0.12.1", features = ["wnaf-memuse"] }
 halo2_gadgets = { version = "0.2", path = "../halo2/halo2_gadgets" }
 halo2_proofs = { version = "0.2", path = "../halo2/halo2_proofs" }
 hex = "0.4"
 lazy_static = "1"
-#memuse = { version = "0.2", features = ["nonempty"] }
-pasta_curves = { version = "0.4", path = "../pasta_curves" }
-#=======
-group = { version = "0.12.1", features = ["wnaf-memuse"] }
-#halo2_gadgets = "0.2"
-#halo2_proofs = "0.2"
-#hex = "0.4"
-#lazy_static = "1"
 memuse = { version = "0.2.1", features = ["nonempty"] }
-#pasta_curves = "0.4"
-#>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
+pasta_curves = { version = "0.4", path = "../pasta_curves" }
 proptest = { version = "1.0.0", optional = true }
 rand = "0.8"
 reddsa = { version = "0.3", path = "../reddsa" }
 nonempty = "0.8.0"
 serde = { version = "1.0", features = ["derive"] }
 subtle = "2.3"
-#<<<<<<< HEAD
-#=======
-#zcash_note_encryption = "0.2"
-#>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 incrementalmerkletree = "0.3"
 chacha20poly1305 = "0.9"
 rand_core = "0.6"
@@ -91,12 +72,8 @@ criterion = "0.3"
 halo2_gadgets = { version = "0.2", features = ["test-dependencies"], path = "../halo2/halo2_gadgets" }
 hex = "0.4"
 proptest = "1.0.0"
-#<<<<<<< HEAD
 zeos_verifier = { version = "0.1.0", path = "../zeos-verifier" }
 tokio = { version ="1.22.0", features = ['full'] }
-#=======
-#zcash_note_encryption = { version = "0.2", features = ["pre-zip-212"] }
-#>>>>>>> d05b6cee9df7c4019509e2f54899b5979fb641b5
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.9", features = ["criterion", "flamegraph"] } # MSRV 1.56
