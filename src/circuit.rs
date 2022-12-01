@@ -1088,7 +1088,7 @@ mod tests {
         // code to write serialized vk to file
         //use std::fs::File;
         //use std::io::prelude::*;
-        //let mut file = File::create("foo2.txt").unwrap();
+        //let mut file = File::create("vk.txt").unwrap();
         //file.write_all(hex::encode(&arr).as_bytes()).unwrap();
         let vk = VerifyingKey::deserialize(&mut arr);
 /*
@@ -1242,7 +1242,7 @@ mod tests {
         assert!(proof.verify(&vk, &instances).is_ok());
     }
 
-    // cargo test --features dev-graph --package zeos-orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
+    // cargo test --features dev-graph --package zeos_orchard --lib -- circuit::tests::print_action_circuit --exact --nocapture
     #[cfg(feature = "dev-graph")]
     #[test]
     fn print_action_circuit() {

@@ -137,7 +137,7 @@ impl Wallet
 
         assert!(proof.is_some());
         let proof_str = hex::encode(proof.unwrap().as_ref());
-        contract.upload_proof_to_liquidstorage(&proof_str).await;
+        //contract.upload_proof_to_liquidstorage(&proof_str).await;
 
         // return JSON string of EOS actions ready to execute
         // all non-serialized 'data' strings should be valid JSON

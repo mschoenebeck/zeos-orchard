@@ -170,7 +170,7 @@ pub async fn test_proof_upload()
 // conflicts in build for default target (like for unit tests)
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 pub use wasm_bindgen_rayon::init_thread_pool;
-
+/*
 // Called when the wasm module is instantiated
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue>
@@ -189,7 +189,7 @@ pub fn main() -> Result<(), JsValue>
 
     Ok(())
 }
-
+*/
 #[wasm_bindgen]
 extern "C" {
     // Use `js_namespace` here to bind `console.log(..)` instead of just
