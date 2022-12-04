@@ -3,7 +3,7 @@
 use crate::tree::{MerkleHashOrchard, MerklePath};
 use nonempty::NonEmpty;
 use pasta_curves::Fp;
-use crate::note::{Note, TransmittedNoteCiphertext, Nullifier, RandomSeed};
+use crate::note::{Note, TransmittedNoteCiphertext, Nullifier, RandomSeed, ExtractedNoteCommitment};
 use crate::note_encryption::{ENC_CIPHERTEXT_SIZE, try_note_decryption, try_output_recovery_with_ovk};
 use crate::note_encryption::OUT_CIPHERTEXT_SIZE;
 use crate::tree::EMPTY_ROOTS;
@@ -472,6 +472,7 @@ impl HasMerkleTree for TokenContract
     {
         // only merkle trees with depth up to 32 are supported by the circuit design
         assert!(MERKLE_DEPTH_ORCHARD <= 32);
+        assert!(leaf_index < leaf_count);
         // initialize return values: position is the leaf_index in the >local< tree
         let position = (leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD)) as u32;
         let mut auth_path = vec![EMPTY_ROOTS[0]; MERKLE_DEPTH_ORCHARD];
@@ -619,11 +620,71 @@ impl TokenContract
         Some((index, value))
     }
 
+    pub async fn is_correct_leaf_index(
+        &mut self,
+        nc: MerkleHashOrchard,
+        leaf_index: u64
+    ) -> bool
+    {
+        let leaf_idx = leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD);
+        let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let idx = tos + MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_idx;
+
+        if self.node_buffer.contains_key(&idx)
+        {
+            self.node_buffer[&idx] == nc
+        }
+        else
+        {
+            let x = self.get_merkle_hash(idx).await;
+            if x.is_some()
+            {
+                let (i, v) = x.unwrap();
+                self.node_buffer.insert(i, v);
+                v == nc
+            }
+            else
+            {
+                false
+            }
+        }
+    }
+
+    pub async fn determine_leaf_index(
+        &mut self,
+        note: &mut NoteEx,
+        leaf_count: u64
+    )
+    {
+        let nc = MerkleHashOrchard::from(ExtractedNoteCommitment::from(note.note.commitment()).inner());
+        let mut delta = 0;
+        loop
+        {
+            let r = note.leaf_index + delta;
+            let l = note.leaf_index as i128 - delta as i128;
+
+            if r < leaf_count && self.is_correct_leaf_index(nc, r).await
+            {
+                note.leaf_index = r;
+                return;
+            }
+            if l >= 0 && self.is_correct_leaf_index(nc, l as u64).await
+            {
+                note.leaf_index = l as u64;
+                return;
+            }
+
+            delta += 1;
+        }
+    }
+
+/*
     pub fn clear_node_buffer(&mut self)
     {
         self.node_buffer.clear();
     }
-
+*/
     pub async fn get_global_state(&self) -> Global
     {
         // prepare POST request to fetch from EOSIO singleton table

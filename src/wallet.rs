@@ -78,7 +78,7 @@ impl Wallet
     /// Synchronize wallet state with contract state
     pub async fn sync(&mut self)
     {
-        let contract = TokenContract::new(ENDPOINTS.map(String::from));
+        let mut contract = TokenContract::new(ENDPOINTS.map(String::from));
         let global = contract.get_global_state().await;
         if global.note_count == self.state.note_count
         {
@@ -107,7 +107,10 @@ impl Wallet
         }
 
         // determine leaf_indices of 'new_notes'
-        // TODO
+        for i in 0..new_notes.len()
+        {
+            contract.determine_leaf_index(&mut new_notes[i], global.leaf_count).await;
+        }
 
         // move new notes into 'notes' and update wallet state
         self.spendable_notes.append(&mut new_notes);
