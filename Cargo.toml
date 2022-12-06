@@ -24,7 +24,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "katex-header.html"]
 
 [dependencies]
-rustzeos = { version = "0.1.0", path = "../rustzeos", features = ["multicore"] }
+rustzeos = { version = "0.1.0", path = "../rustzeos" }
 aes = "0.7"
 bitvec = "1"
 blake2b_simd = "1"
@@ -65,7 +65,7 @@ tracing = "0.1"
 plotters = { version = "0.3.0", optional = true }
 
 [target.wasm32-unknown-unknown.dependencies]
-wasm-bindgen-rayon = { version = "1.0", features = ["no-bundler"] }
+wasm-bindgen-rayon = { version = "1.0", features = ["no-bundler"], optional = true }
 
 [dev-dependencies]
 criterion = "0.3"
@@ -84,7 +84,8 @@ crate-type = ["cdylib"]
 [features]
 dev-graph = ["halo2_proofs/dev-graph", "plotters"]
 test-dependencies = ["proptest"]
-#default = ["dev-graph"]
+multicore = ["halo2_proofs/multicore", "rustzeos/multicore", "wasm-bindgen-rayon"]
+default = ["multicore"] #["dev-graph"]
 
 [profile.release]
 debug = true

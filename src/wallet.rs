@@ -1,10 +1,10 @@
 //! Logic for everything wallet related.
 
-use crate::builder::{TransactionBuilder, EOSActionDesc};
+use crate::builder::TransactionBuilder;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
 use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External};
 use crate::contract::{Global, NoteEx, TokenContract};
-use crate::{ENDPOINTS, log};
+use crate::{ENDPOINTS};
 use crate::circuit::{Circuit, K};
 
 use rustzeos::halo2::ProvingKey;

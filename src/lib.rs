@@ -49,14 +49,11 @@ pub use tree::Anchor;
 
 use crate::keys::SpendingKey;
 use crate::keys::FullViewingKey;
-use crate::contract::NoteEx;
 use crate::builder::HasMerkleTree;
 
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 extern crate serde_json;
-
-use rand::rngs::OsRng;
 
 use crate::contract::{TokenContract, EOSGetTableRowsPayload};
 
@@ -165,6 +162,7 @@ pub async fn test_proof_upload()
     
 }
 
+#[cfg(feature = "multicore")]
 // see: https://github.com/GoogleChromeLabs/wasm-bindgen-rayon
 // only enable this when build as wasm since wasm_bindgen_rayon
 // conflicts in build for default target (like for unit tests)
