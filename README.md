@@ -24,6 +24,7 @@ git clone https://github.com/mschoenebeck/halo2.git
 git clone https://github.com/mschoenebeck/pasta_curves.git
 git clone https://github.com/mschoenebeck/reddsa.git
 git clone https://github.com/mschoenebeck/thezeostoken.git
+git clone https://github.com/mschoenebeck/zeos-verifier.git
 cd thezeostoken && git checkout orchard && cd ..
 git clone https://github.com/mschoenebeck/zeos-wallet.git
 cd zeos-wallet && git checkout orchard && cd ..
