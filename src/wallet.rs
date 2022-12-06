@@ -49,6 +49,7 @@ fn default_proving_key() -> ProvingKey
 impl Wallet
 {
     /// Creates a new wallet from seed phrase
+    /// TODO: add 'wallet birthday' (i.e. allow for initialization of 'state' as well)
     pub fn new(seed: String) -> Self
     {
         assert!(SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0).is_ok());
