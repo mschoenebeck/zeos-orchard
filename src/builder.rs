@@ -14,7 +14,7 @@ use crate::contract::NoteEx;
 extern crate serde_json;
 
 use rand::rngs::OsRng;
-use rustzeos::halo2::Proof;
+use rustzeos::halo2::{Proof, ProvingKey};
 use sha256::digest;
 use std::cmp::min;
 
@@ -142,6 +142,7 @@ impl TransactionBuilder
     /// ...
     pub async fn build_transaction<D: HasMerkleTree>(
         &self,
+        pk: &ProvingKey,
         sk: &SpendingKey,
         notes: &mut Vec<NoteEx>,
         action_descs: &Vec<EOSActionDesc>,
@@ -210,7 +211,7 @@ impl TransactionBuilder
         }
 
         // process 'begin' action of privacy sequence
-        let ((proof, _, _), _, encrypted_notes) = Bundle::from_parts(raw_zactions).prepare(&mut rng);
+        let ((proof, _, _), _, encrypted_notes) = Bundle::from_parts(raw_zactions).prepare(pk, &mut rng);
         let mut data_str = format!("{{\"proof\":\"{}\",\"notes\":", get_liquidstorage_uri(hex::encode(proof.as_ref()), true));
         data_str.push_str(&serde_json::to_string(&encrypted_notes).unwrap());
         data_str.push_str(",\"tx\":");
@@ -497,6 +498,8 @@ mod tests
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, TransactionBuilder, Note, NoteValue, Address, Nullifier, NoteEx, SpendingKey, EOSAction, HasMerkleTree};
     use super::eos_name_to_value;
     use super::{ZActionDesc, EOSActionDesc, EOSAuthorization};
+    use crate::circuit::{Circuit, K};
+    use rustzeos::halo2::ProvingKey;
 
     #[test]
     fn test_liquidstorage_uri()
@@ -738,7 +741,9 @@ mod tests
         
         let tb = TransactionBuilder::new(0); // leaf_count not required for DummyContract's get_merkle_path()
         let mut dc = DummyContract;
+        let pk = ProvingKey::build(Circuit::default(), K);
         let (proof, actions) = tb.build_transaction(
+            &pk,
             &sk,
             &mut notes,
             &action_descs,

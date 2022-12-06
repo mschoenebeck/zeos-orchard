@@ -5,7 +5,9 @@ use crate::constants::MERKLE_DEPTH_ORCHARD;
 use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External};
 use crate::contract::{Global, NoteEx, TokenContract};
 use crate::{ENDPOINTS, log};
+use crate::circuit::{Circuit, K};
 
+use rustzeos::halo2::ProvingKey;
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 extern crate serde_json;
@@ -28,10 +30,19 @@ pub struct Wallet
     pub(crate) seed: String,
     /// The state of this wallet
     pub(crate) state: Global,
+    /// The zk-SNARK proving key
+    #[serde(skip)]
+    #[serde(default = "default_proving_key")]
+    pk: ProvingKey,
     /// The spendable notes of this wallet
     pub(crate) spendable_notes: Vec<NoteEx>,
     /// The notes that have been sent from this wallet
     pub(crate) sent_notes: Vec<NoteEx>,
+}
+
+fn default_proving_key() -> ProvingKey
+{
+    ProvingKey::build(Circuit::default(), K)
 }
 
 #[wasm_bindgen]
@@ -44,6 +55,7 @@ impl Wallet
         Wallet {
             seed: seed.clone(),
             state: Global{ note_count: 0, leaf_count: 0, tree_depth: MERKLE_DEPTH_ORCHARD as u64 },
+            pk: default_proving_key(),
             spendable_notes: Vec::new(),
             sent_notes: Vec::new(),
         }
@@ -131,6 +143,7 @@ impl Wallet
         //log(&format!("{:?}", action_descs));
 
         let (proof, actions) = builder.build_transaction(
+            &self.pk,
             &sk,
             &mut self.spendable_notes.clone(),
             &action_descs,

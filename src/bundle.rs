@@ -9,7 +9,7 @@ use crate::{
     note::{Note, TransmittedNoteCiphertext},
     tree::MerklePath,
     value::NoteValue,
-    circuit::{Circuit, K}
+    circuit::Circuit
 };
 use halo2_proofs::circuit::Value;
 
@@ -52,7 +52,11 @@ impl Bundle
     }
 
     /// Calculates and returns the proof for this bundle
-    pub fn proof<R: RngCore>(&self, mut rng: R) -> (Proof, Vec<Circuit>, Vec<Instance>)
+    pub fn proof<R: RngCore>(
+        &self,
+        pk: &ProvingKey,
+        mut rng: R
+    ) -> (Proof, Vec<Circuit>, Vec<Instance>)
     {
         let mut circuits: Vec<Circuit> = Vec::new();
         let mut instances: Vec<Instance> = Vec::new();
@@ -114,14 +118,17 @@ impl Bundle
         });
 
         assert!(circuits.len() > 0, "bundle must contain more than just ZA_MINTAUTH");
-        let pk = ProvingKey::build(Circuit::default(), K);
         (Proof::create(&pk, &circuits, &instances, rng).unwrap(), circuits, instances)
     }
 
     /// Prepares a bundle for private transaction by calculating proof, the list of zactions and the encrypted note data
-    pub fn prepare<R: RngCore>(&self, mut rng: R) -> ((Proof, Vec<Circuit>, Vec<Instance>), Vec<ZAction>, Vec<TransmittedNoteCiphertext>)
+    pub fn prepare<R: RngCore>(
+        &self,
+        pk: &ProvingKey,
+        mut rng: R
+    ) -> ((Proof, Vec<Circuit>, Vec<Instance>), Vec<ZAction>, Vec<TransmittedNoteCiphertext>)
     {
-        (self.proof(&mut rng), self.zactions(), self.encrypted_notes(&mut rng))
+        (self.proof(pk, &mut rng), self.zactions(), self.encrypted_notes(&mut rng))
     }
 }
 
@@ -142,9 +149,9 @@ mod tests
         value::{NoteValue}, 
         action::{ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNFT2, ZA_BURNNFT, ZA_BURNAUTH},
         tree::MerklePath,
-        circuit::{Circuit, K}
+        circuit::{Circuit, K},
     };
-    use rustzeos::halo2::{VerifyingKey, Instance};
+    use rustzeos::halo2::{ProvingKey, VerifyingKey, Instance};
     use halo2_proofs::dev::MockProver;
     
     #[test]
@@ -301,7 +308,8 @@ mod tests
         v.push(action2);
         v.push(action3);
         let bundle = Bundle::from_parts(v);
-        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(rng);
+        let pk = ProvingKey::build(Circuit::default(), K);
+        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng);
 
         // check bundle parts
         assert_eq!(zactions.len(), 3);
@@ -607,7 +615,8 @@ mod tests
         v.push(action8);
         v.push(action9);
         let bundle = Bundle::from_parts(v);
-        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(rng);
+        let pk = ProvingKey::build(Circuit::default(), K);
+        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng);
 
         // check bundle parts
         assert_eq!(zactions.len(), 9);
