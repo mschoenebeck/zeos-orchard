@@ -65,6 +65,8 @@ pub struct Wallet
     pub(crate) state: Global,
     /// The settings of this wallet
     pub(crate) settings: Settings,
+    /// The internal diversifier index indicates how many addresses have been derived for this wallet
+    pub(crate) diversifier_index: u32,
     /// The zk-SNARK proving key
     #[serde(skip)]
     #[serde(default = "default_proving_key")]
@@ -92,6 +94,7 @@ impl Wallet
             seed: seed.clone(),
             state: Global{ note_count: 0, leaf_count: 0, tree_depth: MERKLE_DEPTH_ORCHARD as u64 },
             settings: Settings::default(),
+            diversifier_index: 0,
             pk: default_proving_key(),
             spendable_notes: Vec::new(),
             sent_notes: Vec::new(),
