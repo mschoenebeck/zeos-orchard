@@ -13,12 +13,45 @@ extern crate console_error_panic_hook;
 extern crate serde_json;
 extern crate bitcoin_bech32;
 use bitcoin_bech32::u5;
+use std::collections::HashMap;
 
 /// Wallet settings
 #[derive(Debug, Serialize, Deserialize)]
-struct Settings
+pub struct Settings
 {
-    // TODO
+    /// list of API endpoints
+    eos_endpoints: Vec<String>,
+    dsp_endpoints: Vec<String>,
+    zeos_endpoints: Vec<String>,
+    /// maps token symbol to contract name and decimals of known fungible tokens
+    ft_contracts: HashMap<String, (String, u8)>,
+    /// list of known NFT contracts
+    nft_contracts: Vec<String>
+}
+
+impl Default for Settings
+{
+    fn default() -> Self
+    {
+        Settings {
+            eos_endpoints: vec![
+                "https://kylin.eosn.io".to_string()
+            ],
+            dsp_endpoints: vec![
+                "https://kylin-dsp-1.liquidapps.io".to_string()
+            ],
+            zeos_endpoints: vec![
+            ],
+            ft_contracts: HashMap::from([
+                ("EOS".to_string(), ("eosio.token".to_string(), 4)),
+                ("DAPP".to_string(), ("dappservices".to_string(), 4)),
+                ("ZEOS".to_string(), ("thezeostoken".to_string(), 4)),
+            ]),
+            nft_contracts: vec![
+                "atomicassets".to_string()
+            ],
+        }
+    }
 }
 
 /// A ZEOS wallet.
@@ -30,11 +63,13 @@ pub struct Wallet
     pub(crate) seed: String,
     /// The state of this wallet
     pub(crate) state: Global,
+    /// The settings of this wallet
+    pub(crate) settings: Settings,
     /// The zk-SNARK proving key
     #[serde(skip)]
     #[serde(default = "default_proving_key")]
     pk: ProvingKey,
-    /// The spendable notes of this wallet
+    /// The received/spendable notes of this wallet
     pub(crate) spendable_notes: Vec<NoteEx>,
     /// The notes that have been sent from this wallet
     pub(crate) sent_notes: Vec<NoteEx>,
@@ -56,6 +91,7 @@ impl Wallet
         Wallet {
             seed: seed.clone(),
             state: Global{ note_count: 0, leaf_count: 0, tree_depth: MERKLE_DEPTH_ORCHARD as u64 },
+            settings: Settings::default(),
             pk: default_proving_key(),
             spendable_notes: Vec::new(),
             sent_notes: Vec::new(),
