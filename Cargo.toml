@@ -56,7 +56,7 @@ wasm-bindgen-futures = "0.4.33"
 web-sys = { version = "0.3.4", features = ['Headers', 'Request', 'RequestInit', 'RequestMode', 'Response', 'Window', 'FormData', 'Document', 'Element', 'HtmlElement', 'Node'] }
 sha256 = "1.1.1"
 bs58 = "0.4.0"
-bitcoin-bech32 = "0.12.1"
+bech32 = "0.9.1"
 rayon = "1.6.0"
 thiserror = "1.0.37"
 

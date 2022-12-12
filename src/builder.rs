@@ -281,10 +281,7 @@ impl TransactionBuilder
         match desc.za_type
         {
             ZA_MINTFT | ZA_MINTNFT | ZA_MINTAUTH => {
-                let mut to_arr = [0; 43];
-                assert!(desc.to.len() == 2 * 43);
-                hex::decode_to_slice(desc.to.clone(), &mut to_arr).unwrap();
-                let recipient = Address::from_raw_address_bytes(&to_arr).unwrap();
+                let recipient = Address::from_bech32m(&desc.to).unwrap();
                 let mut memo_arr = [0; 512];
                 assert!(desc.memo.len() < 512);
                 memo_arr[0..desc.memo.len()].clone_from_slice(desc.memo.as_bytes());
@@ -337,14 +334,11 @@ impl TransactionBuilder
             ZA_TRANSFERFT | ZA_BURNFT => {
                 match select_fungible_notes(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
                     Some((spent_notes, change)) => {
-                        let mut to_arr = [0; 43];
                         let mut memo_arr = [0; 512];
                         let mut recipient = Address::dummy(&mut rng); // dummy in case of burn
                         if desc.za_type == ZA_TRANSFERFT
                         {
-                            assert!(desc.to.len() == 2 * 43);
-                            hex::decode_to_slice(desc.to.clone(), &mut to_arr).unwrap();
-                            recipient = Address::from_raw_address_bytes(&to_arr).unwrap();
+                            recipient = Address::from_bech32m(&desc.to).unwrap();
                             assert!(desc.memo.len() < 512);
                             memo_arr[0..desc.memo.len()].clone_from_slice(desc.memo.as_bytes());
                         }
@@ -396,14 +390,11 @@ impl TransactionBuilder
             ZA_TRANSFERNFT | ZA_BURNNFT => {
                 match select_nonfungible_note(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
                     Some(spent_note) => {
-                        let mut to_arr = [0; 43];
                         let mut memo_arr = [0; 512];
                         let mut recipient = Address::dummy(&mut rng);
                         if desc.za_type == ZA_TRANSFERNFT
                         {
-                            assert!(desc.to.len() == 2 * 43);
-                            hex::decode_to_slice(desc.to.clone(), &mut to_arr).unwrap();
-                            recipient = Address::from_raw_address_bytes(&to_arr).unwrap();
+                            recipient = Address::from_bech32m(&desc.to).unwrap();
                             assert!(desc.memo.len() < 512);
                             memo_arr[0..desc.memo.len()].clone_from_slice(desc.memo.as_bytes());
                         }
@@ -596,7 +587,7 @@ mod tests
 
         let mut desc = ZActionDesc {
             za_type: ZA_MINTFT,
-            to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
+            to: fvk.address_at(0u32, Scope::External).to_bech32m(),
             d1: "6".to_string(),
             d2: "1".to_string(),
             sc: "thezeostoken".to_string(),
@@ -618,7 +609,7 @@ mod tests
 
         let mut desc = ZActionDesc {
             za_type: ZA_TRANSFERNFT, 
-            to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
+            to: fvk.address_at(0u32, Scope::External).to_bech32m(),
             d1: "1337".to_string(), 
             d2: "0".to_string(), 
             sc: "nftzeostoken".to_string(), 
@@ -686,7 +677,7 @@ mod tests
             zaction_descs: [
                 ZActionDesc{
                     za_type: ZA_MINTFT,
-                    to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
+                    to: fvk.address_at(0u32, Scope::External).to_bech32m(),
                     d1: "10000".to_string(),
                     d2: "1397703940".to_string(),
                     sc: "thezeostoken".to_string(),
@@ -713,7 +704,6 @@ mod tests
             zaction_descs: [
                 ZActionDesc{
                     za_type: ZA_BURNFT,
-                    //to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
                     to: "mschoenebeck".to_string(),
                     d1: "9".to_string(),
                     d2: "1".to_string(),

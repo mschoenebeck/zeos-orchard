@@ -11,8 +11,6 @@ use rustzeos::halo2::ProvingKey;
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 extern crate serde_json;
-extern crate bitcoin_bech32;
-use bitcoin_bech32::u5;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
@@ -214,7 +212,7 @@ impl Wallet
         let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
         let fvk = FullViewingKey::from(&sk);
         let addr = fvk.address_at(diversifier_index, External);
-        hex::encode(addr.to_raw_address_bytes())
+        addr.to_bech32m()
     }
 
 }
@@ -226,6 +224,6 @@ mod tests
     #[test]
     fn test_regex()
     {
-        
+
     }
 }

@@ -8,6 +8,7 @@ use rand_core::RngCore;
 use crate::FullViewingKey;
 use crate::SpendingKey;
 use crate::keys::Scope;
+use bech32::{FromBase32, ToBase32, Variant};
 
 /// A shielded payment address.
 ///
@@ -76,6 +77,22 @@ impl Address {
             Self::from_parts(d, pk_d)
         })
     }
+
+    /// Encodes this address as Bech32m
+    pub fn to_bech32m(&self) -> String
+    {
+        bech32::encode("za", self.to_raw_address_bytes().to_base32(), Variant::Bech32m).unwrap()
+    }
+
+    /// Parse a Bech32m encoded address
+    pub fn from_bech32m(str: &String) -> CtOption<Self>
+    {
+        let (hrp, data, variant) = bech32::decode(&str).unwrap();
+        let bytes: [u8; 43] = Vec::<u8>::from_base32(&data).unwrap()[0..43].try_into().expect("from_bech32m: incorrect length");
+        assert_eq!(hrp, "za");
+        assert_eq!(variant, Variant::Bech32m);
+        Address::from_raw_address_bytes(&bytes)
+    }
 }
 
 /// Generators for property testing.
@@ -97,5 +114,18 @@ pub mod testing {
             let fvk = FullViewingKey::from(&sk);
             fvk.address_at(j, Scope::External)
         }
+    }
+
+    use rand::rngs::OsRng;
+
+    #[test]
+    fn test_bech32m_encode_decode()
+    {
+        let mut rng = OsRng.clone();
+        let a = Address::dummy(&mut rng);
+        let encoded = a.to_bech32m();
+        println!("{}", encoded);
+        let decoded = Address::from_bech32m(&encoded).unwrap();
+        assert_eq!(a.to_raw_address_bytes(), decoded.to_raw_address_bytes());
     }
 }
