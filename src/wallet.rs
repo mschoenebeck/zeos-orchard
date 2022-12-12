@@ -102,29 +102,17 @@ impl Wallet
     }
 
     /// Restores a wallet from JSON string
-    pub fn restore(json: String) -> Self
+    pub fn from_string(json: String) -> Self
     {
         let res: Self = serde_json::from_str(&json).unwrap();
         res
     }
 
     /// Converts a wallet to JSON formatted string to be restored later using
-    /// the 'restore' function above.
-    pub fn to_json_string(&self) -> String
+    /// the 'from_string' function above.
+    pub fn to_string(&self) -> String
     {
         serde_json::to_string(self).unwrap()
-    }
-
-    /// Returns the address of a certain diversifier as hex string
-    pub fn address(
-        &self,
-        diversifier_index: u32
-    ) -> String
-    {
-        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
-        let fvk = FullViewingKey::from(&sk);
-        let addr = fvk.address_at(diversifier_index, External);
-        hex::encode(addr.to_raw_address_bytes())
     }
 
     /// Synchronize wallet state with contract state
@@ -195,20 +183,32 @@ impl Wallet
         let proof_str = hex::encode(proof.unwrap().as_ref());
         //contract.upload_proof_to_liquidstorage(&proof_str).await;
 
-        // return JSON string of EOS actions ready to execute
-        // all non-serialized 'data' strings should be valid JSON
+        // Returns JSON string of EOS actions ready to execute.
+        // All non-serialized 'data' strings should be valid JSON
         // => remove quotation marks and backslashes
         serde_json::to_string(&actions).unwrap()
             .replace(r#""data":"{"#, r#""data":{"#)
             .replace(r#"}"}"#, r#"}}"#)
             .replace("\\", "")
     }
+/*
+    /// Returns the address of a certain diversifier as hex string
+    pub fn address(
+        &self,
+        diversifier_index: u32
+    ) -> String
+    {
+        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
+        let fvk = FullViewingKey::from(&sk);
+        let addr = fvk.address_at(diversifier_index, External);
+        hex::encode(addr.to_raw_address_bytes())
+    }
+*/
 }
 
 #[cfg(test)]
 mod tests
 {
-
 
     #[test]
     fn test_regex()

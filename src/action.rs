@@ -294,7 +294,7 @@ impl RawZAction
 mod tests
 {
     use super::{RawZAction, Note};
-    use crate::OsRng;
+    use rand_core::OsRng;
 
     #[test]
     fn eos_serialization()

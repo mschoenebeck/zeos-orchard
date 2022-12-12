@@ -77,9 +77,9 @@ pub struct ZActionDesc
 {
     /// ...
     pub(crate) za_type: u64,
-    pub(crate) to: String, // EOS account for BURN actions or shielded address otherwise
-    pub(crate) d1: u64,
-    pub(crate) d2: u64,
+    pub(crate) to: String,  // EOS account for BURN actions or shielded address otherwise
+    pub(crate) d1: String,  // u64
+    pub(crate) d2: String,  // u64
     pub(crate) sc: String,
     pub(crate) memo: String,
 }
@@ -270,8 +270,8 @@ impl TransactionBuilder
                 let note_b = Note::new(
                     match desc.za_type { ZA_MINTFT => NT_FT, ZA_MINTNFT => NT_NFT, ZA_MINTAUTH => NT_AT, _ => 0 },
                     recipient, 
-                    NoteValue::from_raw(desc.d1), 
-                    NoteValue::from_raw(desc.d2), 
+                    NoteValue::from_raw(desc.d1.parse().unwrap()),
+                    NoteValue::from_raw(desc.d2.parse().unwrap()), 
                     NoteValue::from_raw(eos_name_to_value(&desc.sc)), 
                     NoteValue::from_raw(nft),
                     Nullifier::dummy(&mut rng), 
@@ -313,7 +313,7 @@ impl TransactionBuilder
                 }
             }
             ZA_TRANSFERFT | ZA_BURNFT => {
-                match select_fungible_notes(notes, desc.d1, desc.d2, eos_name_to_value(&desc.sc)) {
+                match select_fungible_notes(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
                     Some((spent_notes, change)) => {
                         let mut to_arr = [0; 43];
                         let mut memo_arr = [0; 512];
@@ -372,7 +372,7 @@ impl TransactionBuilder
                 }
             }
             ZA_TRANSFERNFT | ZA_BURNNFT => {
-                match select_nonfungible_note(notes, desc.d1, desc.d2, eos_name_to_value(&desc.sc)) {
+                match select_nonfungible_note(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
                     Some(spent_note) => {
                         let mut to_arr = [0; 43];
                         let mut memo_arr = [0; 512];
@@ -575,8 +575,8 @@ mod tests
         let mut desc = ZActionDesc {
             za_type: ZA_MINTFT,
             to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
-            d1: 6,
-            d2: 1,
+            d1: "6".to_string(),
+            d2: "1".to_string(),
             sc: "thezeostoken".to_string(),
             memo: String::from("")
         };
@@ -597,8 +597,8 @@ mod tests
         let mut desc = ZActionDesc {
             za_type: ZA_TRANSFERNFT, 
             to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
-            d1: 1337, 
-            d2: 0, 
+            d1: "1337".to_string(), 
+            d2: "0".to_string(), 
             sc: "nftzeostoken".to_string(), 
             memo: String::from("")
         };
@@ -665,8 +665,8 @@ mod tests
                 ZActionDesc{
                     za_type: ZA_MINTFT,
                     to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
-                    d1: 10000,
-                    d2: 1397703940,
+                    d1: "10000".to_string(),
+                    d2: "1397703940".to_string(),
                     sc: "thezeostoken".to_string(),
                     memo: "This is a test!".to_string()
                 }
@@ -693,8 +693,8 @@ mod tests
                     za_type: ZA_BURNFT,
                     //to: hex::encode(fvk.address_at(0u32, Scope::External).to_raw_address_bytes()),
                     to: "mschoenebeck".to_string(),
-                    d1: 9,
-                    d2: 1,
+                    d1: "9".to_string(),
+                    d2: "1".to_string(),
                     sc: "thezeostoken".to_string(),
                     memo: "transfer test".to_string()
                 }
