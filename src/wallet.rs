@@ -171,12 +171,12 @@ impl Wallet
 
     pub async fn create_transaction(
         &self,
-        js_action_descs: String,   // Vec<EOSActionDesc>
-        js_eos_auth: String        // Vec<EOSAuth>
+        js_action_descs: JsValue,   // Vec<EOSActionDesc>
+        js_eos_auth: JsValue        // Vec<EOSAuth>
     ) -> String
     {
-        let action_descs = serde_json::from_str(&js_action_descs).unwrap();
-        let eos_auth = serde_json::from_str(&js_eos_auth).unwrap();
+        let action_descs = serde_wasm_bindgen::from_value(js_action_descs).unwrap();
+        let eos_auth = serde_wasm_bindgen::from_value(js_eos_auth).unwrap();
         let mut contract = TokenContract::new(ENDPOINTS.map(String::from));
         let builder = TransactionBuilder::new(self.state.leaf_count);
         let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();

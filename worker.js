@@ -76,7 +76,7 @@ console.log(`Worker created`);
         }]
     }];
 
-    var tx = JSON.parse(await sender.create_transaction(JSON.stringify(descs), JSON.stringify(auth)));
+    var tx = JSON.parse(await sender.create_transaction(descs, auth));
     console.log(JSON.stringify(tx, null, 2));
 
 //}
