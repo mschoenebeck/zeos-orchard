@@ -58,6 +58,7 @@ sha256 = "1.1.1"
 bs58 = "0.4.0"
 bitcoin-bech32 = "0.12.1"
 rayon = "1.6.0"
+thiserror = "1.0.37"
 
 # Logging
 tracing = "0.1"

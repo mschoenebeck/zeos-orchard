@@ -56,7 +56,7 @@ impl Bundle
         &self,
         pk: &ProvingKey,
         mut rng: R
-    ) -> (Proof, Vec<Circuit>, Vec<Instance>)
+    ) -> Result<(Proof, Vec<Circuit>, Vec<Instance>), halo2_proofs::plonk::Error>
     {
         let mut circuits: Vec<Circuit> = Vec::new();
         let mut instances: Vec<Instance> = Vec::new();
@@ -118,7 +118,7 @@ impl Bundle
         });
 
         assert!(circuits.len() > 0, "bundle must contain more than just ZA_MINTAUTH");
-        (Proof::create(&pk, &circuits, &instances, rng).unwrap(), circuits, instances)
+        Ok((Proof::create(&pk, &circuits, &instances, rng)?, circuits, instances))
     }
 
     /// Prepares a bundle for private transaction by calculating proof, the list of zactions and the encrypted note data
@@ -126,9 +126,9 @@ impl Bundle
         &self,
         pk: &ProvingKey,
         mut rng: R
-    ) -> ((Proof, Vec<Circuit>, Vec<Instance>), Vec<ZAction>, Vec<TransmittedNoteCiphertext>)
+    ) -> Result<((Proof, Vec<Circuit>, Vec<Instance>), Vec<ZAction>, Vec<TransmittedNoteCiphertext>), halo2_proofs::plonk::Error>
     {
-        (self.proof(pk, &mut rng), self.zactions(), self.encrypted_notes(&mut rng))
+        Ok((self.proof(pk, &mut rng)?, self.zactions(), self.encrypted_notes(&mut rng)))
     }
 }
 
@@ -309,7 +309,7 @@ mod tests
         v.push(action3);
         let bundle = Bundle::from_parts(v);
         let pk = ProvingKey::build(Circuit::default(), K);
-        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng);
+        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng).unwrap();
 
         // check bundle parts
         assert_eq!(zactions.len(), 3);
@@ -616,7 +616,7 @@ mod tests
         v.push(action9);
         let bundle = Bundle::from_parts(v);
         let pk = ProvingKey::build(Circuit::default(), K);
-        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng);
+        let ((proof, circuits, instances), zactions, encrypted_notes) = bundle.prepare(&pk, rng).unwrap();
 
         // check bundle parts
         assert_eq!(zactions.len(), 9);

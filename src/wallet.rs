@@ -173,13 +173,13 @@ impl Wallet
         &self,
         js_action_descs: JsValue,   // Vec<EOSActionDesc>
         js_eos_auth: JsValue        // Vec<EOSAuth>
-    ) -> String
+    ) -> Result<String, JsError>
     {
-        let action_descs = serde_wasm_bindgen::from_value(js_action_descs).unwrap();
-        let eos_auth = serde_wasm_bindgen::from_value(js_eos_auth).unwrap();
+        let action_descs = serde_wasm_bindgen::from_value(js_action_descs)?;
+        let eos_auth = serde_wasm_bindgen::from_value(js_eos_auth)?;
         let mut contract = TokenContract::new(ENDPOINTS.map(String::from));
         let builder = TransactionBuilder::new(self.state.leaf_count);
-        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
+        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0)?;
         //log(&format!("{:?}", action_descs));
 
         let (proof, actions) = builder.build_transaction(
@@ -189,7 +189,7 @@ impl Wallet
             &action_descs,
             &mut contract,
             &eos_auth
-        ).await;
+        ).await?;
 
         assert!(proof.is_some());
         let proof_str = hex::encode(proof.unwrap().as_ref());
@@ -198,10 +198,11 @@ impl Wallet
         // Returns JSON string of EOS actions ready to execute.
         // All non-serialized 'data' strings should be valid JSON
         // => remove quotation marks and backslashes
-        serde_json::to_string(&actions).unwrap()
+        Ok(serde_json::to_string(&actions)?
             .replace(r#""data":"{"#, r#""data":{"#)
             .replace(r#"}"}"#, r#"}}"#)
             .replace("\\", "")
+        )
     }
 
     /// Returns the address of a certain diversifier as hex string

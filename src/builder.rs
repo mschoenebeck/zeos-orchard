@@ -124,6 +124,21 @@ pub trait HasMerkleTree
     ) -> MerklePath;
 }
 
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum TransactionBuilderError
+{
+    #[error("Error: {0}")]
+    GeneralError(String)
+}
+
+impl From<halo2_proofs::plonk::Error> for TransactionBuilderError
+{
+    fn from(err: halo2_proofs::plonk::Error) -> Self
+    {
+        Self::GeneralError(err.to_string())
+    }
+}
+
 /// ...
 #[derive(Debug)]
 pub struct TransactionBuilder
@@ -148,7 +163,7 @@ impl TransactionBuilder
         action_descs: &Vec<EOSActionDesc>,
         contract: &mut D,
         eos_auth: &Vec<EOSAuthorization>
-    ) -> (Option<Proof>, Vec<EOSAction>)
+    ) -> Result<(Option<Proof>, Vec<EOSAction>), TransactionBuilderError>
     {
         let mut rng = OsRng.clone();
 
@@ -172,7 +187,7 @@ impl TransactionBuilder
         if z_begin == -1
         {
             let tx: Vec<EOSAction> = action_descs.iter().map(|ad| ad.action.clone()).collect();
-            return (None, tx);
+            return Ok((None, tx));
         }
 
         // copy all EOS actions into the tx until the privacy sequence starts...
@@ -188,8 +203,16 @@ impl TransactionBuilder
             let mut rzactions_step = Vec::new();
             for zad in &action_descs[i].zaction_descs
             {
-                // TODO: handle error (None) of create_raw_zactions
-                rzactions_step.extend(self.create_raw_zactions(sk, notes, zad, contract).await.unwrap());
+                // try to create vector of raw zactions from zaction descriptor
+                let rzas = self.create_raw_zactions(sk, notes, zad, contract).await;
+                if rzas.is_none()
+                {
+                    return Err(TransactionBuilderError::GeneralError(format!("ZActionDesc not executable: {}", serde_json::to_string(zad).unwrap())));
+                }
+                else
+                {
+                    rzactions_step.extend(rzas.unwrap());
+                }
             }
             // if there are zactions for this step encode the zactions of all raw zactions of this step (including the dummy zaction!) into the EOS actions 'data'
             let mut a = action_descs[i].action.clone();
@@ -211,12 +234,12 @@ impl TransactionBuilder
         }
 
         // process 'begin' action of privacy sequence
-        let ((proof, _, _), _, encrypted_notes) = Bundle::from_parts(raw_zactions).prepare(pk, &mut rng);
-        let mut data_str = format!("{{\"proof\":\"{}\",\"notes\":", get_liquidstorage_uri(hex::encode(proof.as_ref()), true));
-        data_str.push_str(&serde_json::to_string(&encrypted_notes).unwrap());
-        data_str.push_str(",\"tx\":");
-        data_str.push_str(&serde_json::to_string(&list).unwrap());
-        data_str.push_str("}");
+        let ((proof, _, _), _, encrypted_notes) = Bundle::from_parts(raw_zactions).prepare(pk, &mut rng)?;
+        let data_str = format!("{{\"proof\":\"{}\",\"notes\":{},\"tx\":{}}}", 
+            get_liquidstorage_uri(hex::encode(proof.as_ref()), true),
+            serde_json::to_string(&encrypted_notes).unwrap(),
+            serde_json::to_string(&list).unwrap()
+        );
 
         // add 'begin' and 'step' actions to transaction
         tx.push(EOSAction{
@@ -238,7 +261,7 @@ impl TransactionBuilder
             tx.extend(action_descs[z_end+1..].iter().map(|ad| ad.action.clone()).collect::<Vec<EOSAction>>());
         }
 
-        (Some(proof), tx)
+        Ok((Some(proof), tx))
     }
 
     /// Create as many raw ZActions as needed in order to execute the action described by 'desc' using the pool of 'notes'.
@@ -248,7 +271,6 @@ impl TransactionBuilder
         sk: &SpendingKey, 
         notes: &mut Vec<NoteEx>, 
         desc: &ZActionDesc, 
-        //merkle_path: &mut (u64, &mut HashMap<u64, MerkleHashOrchard>, fn(u64, u64, &mut HashMap<u64, MerkleHashOrchard>) -> MerklePath)
         contract: &mut D
     ) -> Option<Vec<RawZAction>>
     {
@@ -749,7 +771,7 @@ mod tests
             &action_descs,
             &mut dc,
             &newstock1dex_auth.to_vec()
-        ).await;
+        ).await.unwrap();
 
         // print transaction data for manual execution of transactions
         println!("{}", serde_json::to_string(&actions).unwrap());
