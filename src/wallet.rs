@@ -14,6 +14,7 @@ extern crate serde_json;
 extern crate bitcoin_bech32;
 use bitcoin_bech32::u5;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 /// Wallet settings
 #[derive(Debug, Serialize, Deserialize)]
@@ -82,15 +83,23 @@ fn default_proving_key() -> ProvingKey
     ProvingKey::build(Circuit::default(), K)
 }
 
+impl From<crate::zip32::Error> for JsError
+{
+    fn from(err: crate::zip32::Error) -> Self
+    {
+        JsError::new(&err.to_string())
+    }
+}
+
 #[wasm_bindgen]
 impl Wallet
 {
     /// Creates a new wallet from seed phrase
     /// TODO: add 'wallet birthday' (i.e. allow for initialization of 'state' as well)
-    pub fn new(seed: String) -> Self
+    pub fn new(seed: String) -> Result<Wallet, JsError>
     {
-        assert!(SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0).is_ok());
-        Wallet {
+        SpendingKey::from_zip32_seed(seed.as_bytes(), 0, 0)?;
+        Ok(Wallet {
             seed: seed.clone(),
             state: Global{ note_count: 0, leaf_count: 0, tree_depth: MERKLE_DEPTH_ORCHARD as u64 },
             settings: Settings::default(),
@@ -98,35 +107,36 @@ impl Wallet
             pk: default_proving_key(),
             spendable_notes: Vec::new(),
             sent_notes: Vec::new(),
-        }
+        })
     }
 
     /// Restores a wallet from JSON string
-    pub fn from_string(json: String) -> Self
+    pub fn from_string(json: String) -> Result<Wallet, JsError>
     {
-        let res: Self = serde_json::from_str(&json).unwrap();
-        res
+        let res: Self = serde_json::from_str(&json)?;
+        Ok(res)
     }
 
     /// Converts a wallet to JSON formatted string to be restored later using
     /// the 'from_string' function above.
-    pub fn to_string(&self) -> String
+    pub fn to_string(&self) -> Result<String, JsError>
     {
-        serde_json::to_string(self).unwrap()
+        let res = serde_json::to_string(self)?;
+        Ok(res)
     }
 
     /// Synchronize wallet state with contract state
-    pub async fn sync(&mut self)
+    pub async fn sync(&mut self) -> Result<(), JsError>
     {
         let mut contract = TokenContract::new(ENDPOINTS.map(String::from));
         let global = contract.get_global_state().await;
         if global.note_count == self.state.note_count
         {
-            return;
+            return Ok(());
         }
 
         // derive keys required to decrypt notes
-        let fvk = FullViewingKey::from(&SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap());
+        let fvk = FullViewingKey::from(&SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0)?);
 
         let encrypted_notes = contract.get_encrypted_notes(self.state.note_count, global.note_count).await;
         let mut new_notes = Vec::new();
@@ -155,6 +165,8 @@ impl Wallet
         // move new notes into 'notes' and update wallet state
         self.spendable_notes.append(&mut new_notes);
         self.state = global;
+
+        Ok(())
     }
 
     pub async fn create_transaction(
@@ -191,7 +203,7 @@ impl Wallet
             .replace(r#"}"}"#, r#"}}"#)
             .replace("\\", "")
     }
-/*
+
     /// Returns the address of a certain diversifier as hex string
     pub fn address(
         &self,
@@ -203,7 +215,7 @@ impl Wallet
         let addr = fvk.address_at(diversifier_index, External);
         hex::encode(addr.to_raw_address_bytes())
     }
-*/
+
 }
 
 #[cfg(test)]

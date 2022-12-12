@@ -48,7 +48,7 @@ console.log(`Worker created`);
     console.log("create wallets...");
     var sender = Wallet.new("This is the sender wallets seed string. It must be at least 32 characters long!")
     //var receiver = Wallet.new("This is the receiver wallets seed string. It must be at least 32 characters long!")
-    console.log("sender wallet: " + sender.to_json_string());
+    console.log("sender wallet: " + sender.to_string());
 
     var auth = [{actor: "newstock1dex", permission: "active"}];
     var descs = [{
@@ -69,8 +69,8 @@ console.log(`Worker created`);
         zaction_descs: [{
             za_type: 1, //ZA_MINTFT,
             to: sender.address(0),
-            d1: 10000,
-            d2: 1397703940,
+            d1: "10000",
+            d2: "1397703940",
             sc: "thezeostoken",
             memo: "This is a test!"
         }]
