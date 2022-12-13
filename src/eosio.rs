@@ -56,6 +56,29 @@ pub fn name_to_value(str: &String) -> u64
     value
 }
 
+/// Converts an EOSIO encoded name to human readable string
+pub fn value_to_name(value: u64) -> String
+{
+    let charmap = vec!['.', '1', '2', '3', '4', '5', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+    let mask = 0xF800000000000000;
+
+    let mut v = value;
+    let mut str = "".to_string();
+    for i in 0..13
+    {
+        if v == 0
+        {
+            return str;
+        }
+
+        let indx = (v & mask) >> (if i == 12 { 60 } else { 59 });
+        str.push(charmap[indx as usize]);
+
+        v <<= 5;
+    }
+    str
+}
+
 /// Converts a string to EOSIO symbol code
 pub fn string_to_symbol_code(str: &String) -> u64
 {
@@ -117,6 +140,9 @@ mod tests
         assert_eq!(string_to_symbol(&"EOS".to_string(), 4), 1397703940);
         assert_eq!(string_to_symbol(&"ZEOS".to_string(), 4), 357812230660);
         assert_eq!(symbol_code_to_string(5459781), "EOS".to_string());
-        assert_eq!(symbol_to_string_precision(357812230660), ("ZEOS".to_string(), 4))
+        assert_eq!(symbol_to_string_precision(357812230660), ("ZEOS".to_string(), 4));
+        assert_eq!(value_to_name(6138663577826885632), "eosio".to_string());
+        assert_eq!(value_to_name(6138663587900751872), "eosio.msig".to_string());
+        assert_eq!(value_to_name(6138663591592764928), "eosio.token".to_string());
     }
 }
