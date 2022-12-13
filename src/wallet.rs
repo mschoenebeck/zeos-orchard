@@ -6,6 +6,7 @@ use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope
 use crate::contract::{Global, NoteEx, TokenContract};
 use crate::{ENDPOINTS};
 use crate::circuit::{Circuit, K};
+use crate::eosio::symbol_to_string_precision;
 
 use rustzeos::halo2::ProvingKey;
 use wasm_bindgen::prelude::*;
@@ -241,15 +242,17 @@ impl Wallet
     /// Returns a key/value map of all balances of this wallet (symbol => balance)
     pub fn get_balances(&self) -> JsValue
     {
-        // TODO: all
-        //let mut map = HashMap::new();
-        //let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
-        //let fvk = FullViewingKey::from(&sk);
-        //for i in 0..self.diversifier_index
-        //{
-        //    map.insert(i, fvk.address_at(i, External).to_bech32m());
-        //}
-        //serde_wasm_bindgen::to_value(&map).unwrap()
+        let mut map = HashMap::new();
+        for n in self.spendable_notes.iter()
+        {
+            if n.note.nft().inner() == 0
+            {
+                let symbol = symbol_to_string_precision(n.note.d2().inner()).0;
+                let value = n.note.d1().inner();
+                map.entry(symbol).and_modify(|v| *v += value).or_insert(value);
+            }
+        }
+        serde_wasm_bindgen::to_value(&map).unwrap()
     }
 
 }
