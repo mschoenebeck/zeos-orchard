@@ -26,6 +26,7 @@ pub mod bundle;
 pub mod circuit;
 pub mod contract;
 pub mod wallet;
+mod eosio;
 mod constants;
 pub mod keys;
 pub mod note;

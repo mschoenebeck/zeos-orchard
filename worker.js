@@ -45,9 +45,8 @@ console.log(`Worker created`);
     await initThreadPool(8);
 
     // And afterwards we can use all the functionality defined in wasm.
-    console.log("create wallets...");
+    console.log("create wallet...");
     var sender = Wallet.new("This is the sender wallets seed string. It must be at least 32 characters long!")
-    //var receiver = Wallet.new("This is the receiver wallets seed string. It must be at least 32 characters long!")
     console.log("sender wallet: " + sender.to_string());
 
     var auth = [{actor: "newstock1dex", permission: "active"}];

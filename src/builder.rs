@@ -10,67 +10,13 @@ use crate::note::ExtractedNoteCommitment;
 use crate::keys::FullViewingKey;
 use crate::bundle::Bundle;
 use crate::contract::NoteEx;
+use crate::eosio::name_to_value;
 
 extern crate serde_json;
 
 use rand::rngs::OsRng;
 use rustzeos::halo2::{Proof, ProvingKey};
 use sha256::digest;
-use std::cmp::min;
-
-/// Rust equivalent of: cdt/libraries/eosiolib/core/eosio/name.hpp -> name.char_to_value()
-/// See also: https://github.com/AntelopeIO/cdt/blob/c010d6fae2656f212f78d01c41812734934eb54c/libraries/eosiolib/core/eosio/name.hpp#L108
-pub fn char_to_value(c: u8) -> u8
-{
-    if c == '.' as u8
-    {
-       return 0;
-    }
-    else if  c >= '1' as u8 && c <= '5' as u8 
-    {
-       return (c - '1' as u8) + 1;
-    }
-    else if c >= 'a' as u8 && c <= 'z' as u8 
-    {
-       return (c - 'a' as u8) + 6;
-    }
-    // character is not in allowed character set for names
-    return 0;
- }
-
-/// Rust equivalent of: cdt/libraries/eosiolib/core/eosio/name.hpp -> name() constructor
-/// See also: https://github.com/AntelopeIO/cdt/blob/c010d6fae2656f212f78d01c41812734934eb54c/libraries/eosiolib/core/eosio/name.hpp#L77
-pub fn eos_name_to_value(str: &String) -> u64
-{
-    if str.len() > 13
-    {
-        // string is too long to be a valid name
-        return 0;
-    }
-    if str.is_empty()
-    {
-        return 0;
-    }
-    let mut value = 0;
-    let n = min(str.len(), 12);
-    for i in 0..n
-    {
-        value <<= 5;
-        value |= char_to_value(str.as_bytes()[i]) as u64;
-    }
-        value <<= 4 + 5*(12 - n);
-        if str.len() == 13
-        {
-            let v = char_to_value(str.as_bytes()[12]) as u64;
-            if v > 0x0F
-            {
-                // thirteenth character in name cannot be a letter that comes after j
-                return 0;
-            }
-            value |= v;
-        }
-    value
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZActionDesc
@@ -291,7 +237,7 @@ impl TransactionBuilder
                     recipient, 
                     NoteValue::from_raw(desc.d1.parse().unwrap()),
                     NoteValue::from_raw(desc.d2.parse().unwrap()), 
-                    NoteValue::from_raw(eos_name_to_value(&desc.sc)), 
+                    NoteValue::from_raw(name_to_value(&desc.sc)), 
                     NoteValue::from_raw(nft),
                     Nullifier::dummy(&mut rng), 
                     rng, 
@@ -314,7 +260,7 @@ impl TransactionBuilder
                 assert!(desc.to.len() == 2 * 32);
                 hex::decode_to_slice(desc.to.clone(), &mut to_arr).unwrap();
                 let nc = ExtractedNoteCommitment::from_bytes(&to_arr).unwrap();
-                match select_auth_note(notes, eos_name_to_value(&desc.sc), nc) {
+                match select_auth_note(notes, name_to_value(&desc.sc), nc) {
                     Some(spent_note) => {
                         let rza = RawZAction::from_parts(
                             desc.za_type,
@@ -332,7 +278,7 @@ impl TransactionBuilder
                 }
             }
             ZA_TRANSFERFT | ZA_BURNFT => {
-                match select_fungible_notes(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
+                match select_fungible_notes(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), name_to_value(&desc.sc)) {
                     Some((spent_notes, change)) => {
                         let mut memo_arr = [0; 512];
                         let mut recipient = Address::dummy(&mut rng); // dummy in case of burn
@@ -346,7 +292,7 @@ impl TransactionBuilder
                         {
                             // in case of burn note_b's memo field contains the receiving EOS account name's value
                             assert!(desc.to.len() <= 12);
-                            memo_arr[0..8].clone_from_slice(&eos_name_to_value(&desc.to).to_be_bytes());
+                            memo_arr[0..8].clone_from_slice(&name_to_value(&desc.to).to_be_bytes());
                         }
                         for i in 0..spent_notes.len()
                         {
@@ -388,7 +334,7 @@ impl TransactionBuilder
                 }
             }
             ZA_TRANSFERNFT | ZA_BURNNFT => {
-                match select_nonfungible_note(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), eos_name_to_value(&desc.sc)) {
+                match select_nonfungible_note(notes, desc.d1.parse().unwrap(), desc.d2.parse().unwrap(), name_to_value(&desc.sc)) {
                     Some(spent_note) => {
                         let mut memo_arr = [0; 512];
                         let mut recipient = Address::dummy(&mut rng);
@@ -402,7 +348,7 @@ impl TransactionBuilder
                         {
                             // in case of burn note_b's memo field contains the receiving EOS account name's value
                             assert!(desc.to.len() <= 12);
-                            memo_arr[0..8].clone_from_slice(&eos_name_to_value(&desc.to).to_be_bytes());
+                            memo_arr[0..8].clone_from_slice(&name_to_value(&desc.to).to_be_bytes());
                         }
                         let note_b = Note::new(
                             NT_NFT,
@@ -509,7 +455,7 @@ mod tests
     use rand::{rngs::OsRng, seq::SliceRandom};
     use crate::{note::NT_FT, note::NT_AT, tree::MerklePath, action::{ZA_TRANSFERFT, ZA_BURNFT, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERNFT, ZA_BURNNFT, ZA_BURNAUTH}, keys::FullViewingKey, keys::Scope, note::ExtractedNoteCommitment, builder::get_liquidstorage_uri};
     use super::{select_fungible_notes, select_auth_note, select_nonfungible_note, TransactionBuilder, Note, NoteValue, Address, Nullifier, NoteEx, SpendingKey, EOSAction, HasMerkleTree};
-    use super::eos_name_to_value;
+    use super::name_to_value;
     use super::{ZActionDesc, EOSActionDesc, EOSAuthorization};
     use crate::circuit::{Circuit, K};
     use rustzeos::halo2::ProvingKey;
@@ -576,10 +522,10 @@ mod tests
     {
         let mut rng = OsRng.clone();
         let mut notes = Vec::new();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(eos_name_to_value(&"nftzeostoken".to_string())), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(name_to_value(&"nftzeostoken".to_string())), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
 
         let sk = SpendingKey::from_zip32_seed(b"miau seed miau 123 Der seed muss lang genug sein...", 0, 0).unwrap();
@@ -634,9 +580,9 @@ mod tests
         let fvk: FullViewingKey = (&sk).into();
         
         let mut notes = Vec::new();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(eos_name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
         notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
         notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
@@ -644,10 +590,10 @@ mod tests
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];
         
-        assert_eq!(6138663577826885632, eos_name_to_value(&"eosio".to_string()));
-        assert_eq!(6138663587900751872, eos_name_to_value(&"eosio.msig".to_string()));
-        assert_eq!(6138663591592764928, eos_name_to_value(&"eosio.token".to_string()));
-        assert_eq!(10813382581022265600, eos_name_to_value(&"mschoenebeck".to_string()));
+        assert_eq!(6138663577826885632, name_to_value(&"eosio".to_string()));
+        assert_eq!(6138663587900751872, name_to_value(&"eosio.msig".to_string()));
+        assert_eq!(6138663591592764928, name_to_value(&"eosio.token".to_string()));
+        assert_eq!(10813382581022265600, name_to_value(&"mschoenebeck".to_string()));
 
         let ad0 = EOSActionDesc{
             action: EOSAction{

@@ -191,7 +191,7 @@ impl Wallet
 
         assert!(proof.is_some());
         let proof_str = hex::encode(proof.unwrap().as_ref());
-        //contract.upload_proof_to_liquidstorage(&proof_str).await;
+        contract.upload_proof_to_liquidstorage(&proof_str).await;
 
         // Returns JSON string of EOS actions ready to execute.
         // All non-serialized 'data' strings should be valid JSON
@@ -213,6 +213,43 @@ impl Wallet
         let fvk = FullViewingKey::from(&sk);
         let addr = fvk.address_at(diversifier_index, External);
         addr.to_bech32m()
+    }
+
+    /// Increments the internal diversifier index by one and returns a newly derived wallet address from that index
+    pub fn derive_new_wallet_address(&mut self) -> String
+    {
+        self.diversifier_index += 1;
+        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
+        let fvk = FullViewingKey::from(&sk);
+        let addr = fvk.address_at(self.diversifier_index, External);
+        addr.to_bech32m()
+    }
+
+    /// Returns a key/value map of all ever generated wallet addresses (diversifier_index => address)
+    pub fn get_addresses(&self) -> JsValue
+    {
+        let mut map = HashMap::new();
+        let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
+        let fvk = FullViewingKey::from(&sk);
+        for i in 0..self.diversifier_index
+        {
+            map.insert(i, fvk.address_at(i, External).to_bech32m());
+        }
+        serde_wasm_bindgen::to_value(&map).unwrap()
+    }
+
+    /// Returns a key/value map of all balances of this wallet (symbol => balance)
+    pub fn get_balances(&self) -> JsValue
+    {
+        // TODO: all
+        //let mut map = HashMap::new();
+        //let sk = SpendingKey::from_zip32_seed(self.seed.as_bytes(), 0, 0).unwrap();
+        //let fvk = FullViewingKey::from(&sk);
+        //for i in 0..self.diversifier_index
+        //{
+        //    map.insert(i, fvk.address_at(i, External).to_bech32m());
+        //}
+        //serde_wasm_bindgen::to_value(&map).unwrap()
     }
 
 }

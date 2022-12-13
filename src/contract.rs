@@ -806,11 +806,11 @@ impl TokenContract
         // prepare POST request to fetch from EOSIO multiindex table
         let mut opts = RequestInit::new();
         opts.method("POST");
-        opts.mode(RequestMode::NoCors);
+        opts.mode(RequestMode::NoCors); // TODO: should be CORS
         opts.body(Some(&fd));
         
         // TODO: Change to endpoints (need to have the 'web3uploader' service running)
-        let url = "http://web3.zeos.one/uploadstr";
+        let url = "http://web3.zeos.one/uploadstr"; // TODO: should be DSP/ZEOS Validator
         let request = Request::new_with_str_and_init(&url, &opts).unwrap();
         
         // send http request using browser window's fetch
