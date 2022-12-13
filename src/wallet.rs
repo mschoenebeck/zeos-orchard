@@ -6,7 +6,7 @@ use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope
 use crate::contract::{Global, NoteEx, TokenContract};
 use crate::{ENDPOINTS};
 use crate::circuit::{Circuit, K};
-use crate::eosio::symbol_to_string_precision;
+use crate::eosio::{symbol_to_string_precision, string_to_symbol, value_to_name};
 
 use rustzeos::halo2::ProvingKey;
 use wasm_bindgen::prelude::*;
@@ -24,7 +24,7 @@ pub struct Settings
     dsp_endpoints: Vec<String>,
     zeos_endpoints: Vec<String>,
     /// maps token symbol to contract name and decimals of known fungible tokens
-    ft_contracts: HashMap<String, (String, u8)>,
+    ft_contracts: HashMap<String, (String, u64)>,
     /// list of known NFT contracts
     nft_contracts: Vec<String>
 }
@@ -43,9 +43,9 @@ impl Default for Settings
             zeos_endpoints: vec![
             ],
             ft_contracts: HashMap::from([
-                ("EOS".to_string(), ("eosio.token".to_string(), 4)),
-                ("DAPP".to_string(), ("dappservices".to_string(), 4)),
-                ("ZEOS".to_string(), ("thezeostoken".to_string(), 4)),
+                ("EOS".to_string(), ("eosio.token".to_string(), string_to_symbol(&"EOS".to_string(), 4))),
+                ("DAPP".to_string(), ("dappservices".to_string(), string_to_symbol(&"DAPP".to_string(), 4))),
+                ("ZEOS".to_string(), ("thezeostoken".to_string(), string_to_symbol(&"ZEOS".to_string(), 4))),
             ]),
             nft_contracts: vec![
                 "atomicassets".to_string()
@@ -239,7 +239,7 @@ impl Wallet
         serde_wasm_bindgen::to_value(&map).unwrap()
     }
 
-    /// Returns a key/value map of all balances of this wallet (symbol => balance)
+    /// Returns a key/value map of all fungible token balances of this wallet (symbol => balance)
     pub fn get_balances(&self) -> JsValue
     {
         let mut map = HashMap::new();
@@ -249,7 +249,27 @@ impl Wallet
             {
                 let symbol = symbol_to_string_precision(n.note.d2().inner()).0;
                 let value = n.note.d1().inner();
-                map.entry(symbol).and_modify(|v| *v += value).or_insert(value);
+                // check if token contract is correct
+                if n.note.sc().inner() == self.settings.ft_contracts[&symbol].1
+                {
+                    map.entry(symbol).and_modify(|v| *v += value).or_insert(value);
+                }
+            }
+        }
+        serde_wasm_bindgen::to_value(&map).unwrap()
+    }
+
+    /// Returns a key/value map of all non-fungible token ids of this wallet (contract => array of id)
+    pub fn get_nfts(&self) -> JsValue
+    {
+        let mut map = HashMap::new();
+        for n in self.spendable_notes.iter()
+        {
+            if n.note.nft().inner() != 0
+            {
+                let contract = value_to_name(n.note.sc().inner());
+                let mut id = vec![n.note.d1().inner()];
+                map.entry(contract).and_modify(|v: &mut Vec<u64>| (*v).append(&mut id)).or_insert(id);
             }
         }
         serde_wasm_bindgen::to_value(&map).unwrap()
