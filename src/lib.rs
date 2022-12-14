@@ -62,7 +62,7 @@ use crate::contract::{TokenContract, EOSGetTableRowsPayload};
 extern crate serde_derive;
 
 const ENDPOINTS: NonEmpty<&'static str> = nonempty![
-    //"http://eos.api.eosnation.io",
+    //"http://eos.api.eosnation.io"
     "https://kylin-dsp-1.liquidapps.io"
 ];
 

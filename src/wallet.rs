@@ -4,7 +4,7 @@ use crate::builder::TransactionBuilder;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
 use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External};
 use crate::contract::{Global, NoteEx, TokenContract};
-use crate::{ENDPOINTS, log};
+use crate::ENDPOINTS;
 use crate::circuit::{Circuit, K};
 use crate::eosio::{symbol_to_string_precision, string_to_symbol, value_to_name};
 
@@ -14,6 +14,8 @@ extern crate console_error_panic_hook;
 extern crate serde_json;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
 
 /// Wallet settings
 #[derive(Debug, Serialize, Deserialize)]
@@ -88,6 +90,13 @@ impl From<crate::zip32::Error> for JsError
     {
         JsError::new(&err.to_string())
     }
+}
+
+fn serialize_json_compatible<T>(obj: &T) -> Result<JsValue, serde_wasm_bindgen::Error>
+where
+    T: Serialize
+{
+    Ok(obj.serialize(&Serializer::json_compatible())?)
 }
 
 #[wasm_bindgen]
@@ -236,7 +245,7 @@ impl Wallet
         {
             map.insert(i, fvk.address_at(i, External).to_bech32m());
         }
-        serde_wasm_bindgen::to_value(&map).unwrap()
+        serialize_json_compatible(&map).unwrap()
     }
 
     /// Returns a key/value map of all fungible token balances of this wallet (symbol => balance)
@@ -256,7 +265,7 @@ impl Wallet
                 }
             }
         }
-        serde_wasm_bindgen::to_value(&map).unwrap()
+        serialize_json_compatible(&map).unwrap()
     }
 
     /// Returns a key/value map of all non-fungible token ids of this wallet (contract => array of id)
@@ -272,7 +281,7 @@ impl Wallet
                 map.entry(contract).and_modify(|v: &mut Vec<u64>| (*v).append(&mut id)).or_insert(id);
             }
         }
-        serde_wasm_bindgen::to_value(&map).unwrap()
+        serialize_json_compatible(&map).unwrap()
     }
 
     /// ...
@@ -285,11 +294,7 @@ impl Wallet
             let (amount, _) = contract.get_currency_balance(code, &account, sym).await;
             map.insert(sym.clone(), amount.to_string());
         }
-        for (k,v) in map.iter()
-        {
-            log(&format!("{k}: {v}"));
-        }
-        serde_wasm_bindgen::to_value(&map).unwrap()
+        serialize_json_compatible(&map).unwrap()
     }
 
     /// ...
@@ -302,11 +307,7 @@ impl Wallet
             let assets = contract.get_nfts(nftc, &account).await;
             map.insert(nftc.clone(), assets.iter().map(|(id, col)| (id.to_string(), col.clone())).collect::<Vec<(String, String)>>());
         }
-        for (k,v) in map.iter()
-        {
-            log(&format!("{k}: {:?}", v));
-        }
-        serde_wasm_bindgen::to_value(&map).unwrap()
+        serialize_json_compatible(&map).unwrap()
     }
 }
 
