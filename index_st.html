@@ -12,6 +12,10 @@
         var sender = Wallet.new("This is the sender wallets seed string. It must be at least 32 characters long!")
         console.log("sender wallet: " + sender.to_string());
 
+        var bal = await sender.get_account_balances("newstock1dex");
+        console.log(Object.keys(bal));
+        console.log("ZEOS balance: " + JSON.stringify(bal));
+
         var auth = [{actor: "newstock1dex", permission: "active"}];
         var descs = [{
             action: {

@@ -795,6 +795,51 @@ impl TokenContract
         v
     }
 
+    pub async fn get_currency_balance(
+        &self,
+        code: &String,
+        account: &String,
+        symbol: &String
+    ) -> (u64, u8)
+    {
+        // prepare POST request for this API call
+        let mut opts = RequestInit::new();
+        opts.method("POST");
+        opts.mode(RequestMode::Cors);
+        opts.body(Some(&JsValue::from_str(&format!("{{\"code\":\"{}\",\"account\":\"{}\",\"symbol\":\"{}\"}}", code, account, symbol))));
+
+        let url = format!("{}/v1/chain/get_currency_balance", self.endpoints[0]);
+        let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+        request
+            .headers()
+            .set("Accept", "application/json").unwrap();
+        
+        // send http request using browser window's fetch
+        let window = web_sys::window().unwrap();
+        let resp_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+
+        // `resp_value` is a `Response` object.
+        assert!(resp_value.is_instance_of::<Response>());
+        let resp: Response = resp_value.dyn_into().unwrap();
+        let str = resp.text()
+            .map(JsFuture::from).unwrap()
+            .await.unwrap()
+            .as_string()
+            .expect("fetch: Response expected `String` after .text()");
+
+        // str has the following format:
+        // ["257.2000 SYM"] or []
+        if str == "[]" { return (0, 0); }
+        let str = str.chars().skip(2).take(str.len()-4).collect::<String>();
+        let dot = str.find('.');
+        let ws = str.find(' ').unwrap(); // must contain whitespace
+        let dec_len = if dot.is_some() { dot.unwrap() } else { ws };
+        let frac_len = if dot.is_some() { ws-1 - dot.unwrap() } else { 0 };
+        let dec = str.chars().take(dec_len).collect::<String>().parse::<u64>().unwrap() * 10_u64.pow(frac_len as u32);
+        let frac = if dot.is_some() { str.chars().skip(dot.unwrap()+1).take(frac_len).collect::<String>().parse::<u64>().unwrap() } else { 0 };
+        (dec + frac, frac_len as u8)
+    }
+
     pub async fn upload_proof_to_liquidstorage(
         &self,
         proof: &String

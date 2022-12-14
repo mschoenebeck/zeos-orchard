@@ -4,7 +4,7 @@ use crate::builder::TransactionBuilder;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
 use crate::keys::{PreparedIncomingViewingKey, SpendingKey, FullViewingKey, Scope::External};
 use crate::contract::{Global, NoteEx, TokenContract};
-use crate::{ENDPOINTS};
+use crate::{ENDPOINTS, log};
 use crate::circuit::{Circuit, K};
 use crate::eosio::{symbol_to_string_precision, string_to_symbol, value_to_name};
 
@@ -275,6 +275,22 @@ impl Wallet
         serde_wasm_bindgen::to_value(&map).unwrap()
     }
 
+    /// ...
+    pub async fn get_account_balances(&self, account: String) -> JsValue
+    {
+        let contract = TokenContract::new(ENDPOINTS.map(String::from));
+        let mut map = HashMap::new();
+        for (sym, (code, _)) in self.settings.ft_contracts.iter()
+        {
+            let (amount, _) = contract.get_currency_balance(code, &account, sym).await;
+            map.insert(sym.clone(), amount.to_string());
+        }
+        for (k,v) in map.iter()
+        {
+            log(&format!("{k}: {v}"));
+        }
+        serde_wasm_bindgen::to_value(&map).unwrap()
+    }
 }
 
 #[cfg(test)]
