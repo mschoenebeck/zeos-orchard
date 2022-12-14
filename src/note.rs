@@ -90,11 +90,15 @@ pub const NT_FT: u64    = 0x0;
 pub const NT_NFT: u64   = 0x1;
 pub const NT_AT: u64    = 0x2;
 
+/// Note header flags
+/// The 'B'urn flag
+pub const NH_BURN_FLAG: u64 = 1 << 63;
+
 /// A discrete amount of funds received by an address.
 #[derive(Debug, Copy, Clone)]
 pub struct Note {
     /// The Header field with meta information like type of note.
-    header: u64,
+    pub(crate) header: u64,
     /// The recipient of the funds.
     recipient: Address,
     /// The value of this note.

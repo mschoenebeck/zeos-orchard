@@ -3,7 +3,7 @@
 use crate::action::{RawZAction, ZA_MINTFT, ZA_MINTNFT, ZA_MINTAUTH, ZA_TRANSFERFT, ZA_TRANSFERNFT, ZA_BURNFT, ZA_BURNNFT, ZA_BURNAUTH};
 use crate::address::Address;
 use crate::tree::MerklePath;
-use crate::note::{Note, Nullifier, NT_FT, NT_NFT, NT_AT};
+use crate::note::{Note, Nullifier, NT_FT, NT_NFT, NT_AT, NH_BURN_FLAG};
 use crate::keys::SpendingKey;
 use crate::value::NoteValue;
 use crate::note::ExtractedNoteCommitment;
@@ -261,7 +261,8 @@ impl TransactionBuilder
                 hex::decode_to_slice(desc.to.clone(), &mut to_arr).unwrap();
                 let nc = ExtractedNoteCommitment::from_bytes(&to_arr).unwrap();
                 match select_auth_note(notes, name_to_value(&desc.sc), nc) {
-                    Some(spent_note) => {
+                    Some(mut spent_note) => {
+                        spent_note.note.header |= NH_BURN_FLAG;
                         let rza = RawZAction::from_parts(
                             desc.za_type,
                             &fvk,
@@ -288,7 +289,7 @@ impl TransactionBuilder
                             assert!(desc.memo.len() < 512);
                             memo_arr[0..desc.memo.len()].clone_from_slice(desc.memo.as_bytes());
                         }
-                        else
+                        else // desc.za_type == ZA_BURNFT
                         {
                             // in case of burn note_b's memo field contains the receiving EOS account name's value
                             assert!(desc.to.len() <= 12);
@@ -297,7 +298,7 @@ impl TransactionBuilder
                         for i in 0..spent_notes.len()
                         {
                             let note_b = Note::new(
-                                NT_FT,
+                                NT_FT | if desc.za_type == ZA_BURNFT { NH_BURN_FLAG } else { 0 },
                                 recipient, 
                                 if i == spent_notes.len()-1 { NoteValue::from_raw(spent_notes[i].note.d1().inner() - change) } else { spent_notes[i].note.d1() },
                                 spent_notes[i].note.d2(),
@@ -344,14 +345,14 @@ impl TransactionBuilder
                             assert!(desc.memo.len() < 512);
                             memo_arr[0..desc.memo.len()].clone_from_slice(desc.memo.as_bytes());
                         }
-                        else
+                        else // desc.za_type == ZA_BURNNFT
                         {
                             // in case of burn note_b's memo field contains the receiving EOS account name's value
                             assert!(desc.to.len() <= 12);
                             memo_arr[0..8].clone_from_slice(&name_to_value(&desc.to).to_be_bytes());
                         }
                         let note_b = Note::new(
-                            NT_NFT,
+                            NT_NFT | if desc.za_type == ZA_BURNNFT { NH_BURN_FLAG } else { 0 },
                             recipient, 
                             spent_note.note.d1(),
                             spent_note.note.d2(),

@@ -259,20 +259,20 @@ impl RawZAction
     pub fn encrypted_notes<R: RngCore>(&self, mut rng: R) -> Vec<TransmittedNoteCiphertext>
     {
         let mut encrypted_notes = Vec::new();
-        if self.za_type != ZA_BURNFT && self.za_type != ZA_BURNFT2 && self.za_type != ZA_BURNNFT && self.za_type != ZA_BURNAUTH
-        {
-            // encrypt note_b
-            let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_b.unwrap());
-            let esk = OrchardDomain::derive_esk(&self.note_b.unwrap()).unwrap();
-            let epk = OrchardDomain::ka_derive_public(&self.note_b.unwrap(), &esk);
-            let encrypted_note = TransmittedNoteCiphertext {
-                epk_bytes: epk.to_bytes().0,
-                enc_ciphertext: ne.encrypt_note_plaintext(),
-                out_ciphertext: ne.encrypt_outgoing_plaintext(&mut rng),
-            };
-            encrypted_notes.push(encrypted_note);
-        }
-        if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT
+
+        // always encrypt note_b (in case of BURN it is still transmitted with the Burn flag set for the UI)
+        let ne = NoteEncryption::new(Some(self.fvk.to_ovk(External)), self.note_b.unwrap());
+        let esk = OrchardDomain::derive_esk(&self.note_b.unwrap()).unwrap();
+        let epk = OrchardDomain::ka_derive_public(&self.note_b.unwrap(), &esk);
+        let encrypted_note = TransmittedNoteCiphertext {
+            epk_bytes: epk.to_bytes().0,
+            enc_ciphertext: ne.encrypt_note_plaintext(),
+            out_ciphertext: ne.encrypt_outgoing_plaintext(&mut rng),
+        };
+        encrypted_notes.push(encrypted_note);
+
+        // note_c is transmitted only if part C of the circuit is involved. This includes BURNFT2 (Burn flag set)
+        if self.za_type == ZA_TRANSFERFT || self.za_type == ZA_BURNFT || self.za_type == ZA_BURNFT2
         {
             // encrypt note_c
             // TODO: if note_c.d1 == 0 add dummy note
