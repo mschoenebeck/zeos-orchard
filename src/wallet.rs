@@ -291,6 +291,23 @@ impl Wallet
         }
         serde_wasm_bindgen::to_value(&map).unwrap()
     }
+
+    /// ...
+    pub async fn get_account_nfts(&self, account: String) -> JsValue
+    {
+        let contract = TokenContract::new(ENDPOINTS.map(String::from));
+        let mut map = HashMap::new();
+        for nftc in self.settings.nft_contracts.iter()
+        {
+            let assets = contract.get_nfts(nftc, &account).await;
+            map.insert(nftc.clone(), assets.iter().map(|(id, col)| (id.to_string(), col.clone())).collect::<Vec<(String, String)>>());
+        }
+        for (k,v) in map.iter()
+        {
+            log(&format!("{k}: {:?}", v));
+        }
+        serde_wasm_bindgen::to_value(&map).unwrap()
+    }
 }
 
 #[cfg(test)]

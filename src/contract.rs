@@ -13,6 +13,7 @@ use crate::keys::PreparedIncomingViewingKey;
 use crate::keys::OutgoingViewingKey;
 use crate::address::Address;
 use crate::constants::MERKLE_DEPTH_ORCHARD;
+use crate::eosio::value_to_name;
 extern crate console_error_panic_hook;
 extern crate serde_json;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
@@ -838,6 +839,42 @@ impl TokenContract
         let dec = str.chars().take(dec_len).collect::<String>().parse::<u64>().unwrap() * 10_u64.pow(frac_len as u32);
         let frac = if dot.is_some() { str.chars().skip(dot.unwrap()+1).take(frac_len).collect::<String>().parse::<u64>().unwrap() } else { 0 };
         (dec + frac, frac_len as u8)
+    }
+
+    pub async fn get_nfts(
+        &self,
+        code: &String,
+        account: &String
+    ) -> Vec<(u64, String)>
+    {
+        // prepare POST request to fetch from EOSIO multiindex table
+        let payload = EOSGetTableRowsPayload{
+            code: code.clone(),
+            table: "assets".to_string(),
+            scope: account.clone(),
+            index_position: "primary".to_string(),
+            key_type: "uint64_t".to_string(),
+            encode_type: "dec".to_string(),
+            lower_bound: 0,
+            upper_bound: u64::MAX,
+            limit: 10,
+            reverse: false,
+            show_payer: false
+        };
+        let res = self.get_table_rows(&mut payload.clone()).await;
+        
+        let mut v = Vec::new();
+        for str in res.rows
+        {
+            // parse serialized EOS data (only first two u64 values which is 'asset_id' and 'collection_name')
+            let mut arr = [0; 8+8];
+            let sub_str = str.chars().take(32).collect::<String>();
+            assert!(hex::decode_to_slice(sub_str, &mut arr).is_ok());
+            let id = u64::from_le_bytes(arr[0..8].try_into().unwrap());
+            let collection = value_to_name(u64::from_le_bytes(arr[8..16].try_into().unwrap()));
+            v.push((id, collection));
+        }
+        v
     }
 
     pub async fn upload_proof_to_liquidstorage(
