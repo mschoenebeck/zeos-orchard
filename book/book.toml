@@ -9,3 +9,4 @@ title = "The ZEOS Book"
 
 [preprocessor.katex]
 macros = "macros.txt"
+renderers = ["html"]
