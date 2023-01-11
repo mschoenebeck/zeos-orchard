@@ -7,6 +7,8 @@ title = "The ZEOS Book"
 
 [output.katex]
 
+[output.html]
+
 [preprocessor.katex]
 macros = "macros.txt"
 renderers = ["html"]
