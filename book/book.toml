@@ -5,5 +5,7 @@ multilingual = false
 src = "src"
 title = "The ZEOS Book"
 
+[output.katex]
+
 [preprocessor.katex]
 macros = "macros.txt"
