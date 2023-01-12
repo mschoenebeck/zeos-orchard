@@ -13,7 +13,7 @@ $$\DiversifiedTransmitBaseRepr \bconcat
   \ItoLEBSP{64}(\mathsf{d2}) \bconcat
   \ItoLEBSP{1}(\mathsf{nft}) \bconcat
   \ItoLEBSP{64}(\mathsf{sc}),$$
-
+  
 where:
 - $\DiversifiedTransmitBaseRepr, \DiversifiedTransmitPublicRepr$ are representations of
   Pallas curve points, with $255$ bits used for the $x$-coordinate and $1$ bit used for
