@@ -145,4 +145,14 @@ mod tests
         assert_eq!(value_to_name(6138663587900751872), "eosio.msig".to_string());
         assert_eq!(value_to_name(6138663591592764928), "eosio.token".to_string());
     }
+
+    #[test]
+    fn test2()
+    {
+        println!("{:?}", name_to_value(&"zeos1fractal".to_string()).to_le_bytes());
+        println!("{:?}", name_to_value(&"cryptkeeper".to_string()).to_le_bytes());
+        println!("{:?}", string_to_symbol(&"EOS".to_string(), 4).to_le_bytes());
+        println!("{:?}", name_to_value(&"active".to_string()).to_le_bytes());
+        println!("{:?}", name_to_value(&"teamgreymass".to_string()).to_le_bytes());
+    }
 }

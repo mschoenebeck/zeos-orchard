@@ -30,7 +30,7 @@ TODO: DEFINE SYMBOLS
 
 Note $A$ (transaction input):
 
-1. $\mathsf{path}$
+1. $\mathsf{path}$          miau
 2. $\mathsf{pos}$
 3. $\DiversifiedTransmitBase_a$
 4. $\DiversifiedTransmitPublic_a$
