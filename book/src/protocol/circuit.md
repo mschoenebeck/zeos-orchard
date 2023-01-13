@@ -20,78 +20,72 @@ The second configuration is used for minting notes only. The action $BURNAUTH$ i
 For a more detailed description of the exact action circuit configuration for each specific private action types see below.
 
 See also:
-- the [schematic](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action_circuit_schematic.pdf) of the action circuit
-- the [layout](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action-circuit-layout.png) of the action circuit
+- the [schematic](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action_circuit_schematic.pdf) of the action circuit (TODO: Legend)
+- the [layout](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action-circuit-layout.png) of the action circuit (column types explained [here](https://halo2.dev/))
 
 ## Private Inputs
 The following list contains all private inputs to the top level ZEOS action circuit.
 
-TODO: DEFINE SYMBOLS
-
 Note $A$ (transaction input):
 
-1. $\mathsf{path}$          miau
-2. $\mathsf{pos}$
-3. $\DiversifiedTransmitBase_a$
-4. $\DiversifiedTransmitPublic_a$
-5. $\mathsf{d1}_a$
-6. $\mathsf{d2}_a$
-7. $\rho_a$
-8. $\psi_a$
-9. $\mathsf{rcm}_a$
-10. $\mathsf{cm}_a$
-11. $\alpha$
-12. $\mathsf{ak}$
-13. $\mathsf{nk}$
-14. $\mathsf{rivk}$
+1. $\mathsf{path}$                  : Authentication path of note commitment A. The sister path of note commitment A which is required in order to calculate it's merkle plath.
+2. $\mathsf{pos}$                   : Position of note commitment A inside the merkle tree. Specifically this is the leaf index of note commitment A.
+3. $\DiversifiedTransmitBase_a$     : Address diversify hash of note A. Deterministically derived from a diversifier index (see p. 37 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+4. $\DiversifiedTransmitPublic_a$   : Address public key of note A. Derived from Incoming Viewing Key and diversify hash (see p. 14 and 37 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+5. $\mathsf{d1}_a$                  : Either the value of note A (fungible token) or the (lower 64 bits of the) unique identifier of note A (non-fungible token).
+6. $\mathsf{d2}_a$                  : Either the symbol code of note A (fungible token) or the (upper 64 bits of the) unique identifier of note A (non-fungible token).
+7. $\rho_a$                         : Randomness to derive nullifier of note A (equals nullifier of note that was spent in order to create note A) (see p. 14 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf))
+8. $\psi_a$                         : Additional randomness to derive nullifier of note A (see p. 14 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf))
+9. $\mathsf{rcm}_a$                 : Random commitment trapdoor of note commitment A (see p. 14 and 28 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf))
+10. $\mathsf{cm}_a$                 : Note commit of note A (see p. 28 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+11. $\alpha$                        : Randomness to derive a spend authorization signature for note A (see p. 55 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+12. $\mathsf{ak}$                   : Spend Validating Key which is part of the Full Viewing Key components (see p. 36 and 116 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+13. $\mathsf{nk}$                   : Nullifier Deriving Key which is part of the Full Viewing Key components (see p. 36 and 116 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+14. $\mathsf{rivk}$                 : Randomness which is part of the Full Viewing Key components to derive corresponding Incoming Viewing Key of the address diversify hash of note A (see p. 36, 37 and 116 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
 
 Note $B$ (transaction output):
 
-15. $\DiversifiedTransmitBase_b$
-16. $\DiversifiedTransmitPublic_b$
-17. $\mathsf{d1}_b$
-18. $\mathsf{d2}_b$
-19. $\mathsf{sc}_b$
-20. $\rho_b$
-21. $\psi_b$
-22. $\mathsf{rcm}_b$
+15. $\DiversifiedTransmitBase_b$    : Address diversify hash of note B.
+16. $\DiversifiedTransmitPublic_b$  : Address public key of note B.
+17. $\mathsf{d1}_b$                 : Either the value of note B (fungible token) or the (lower 64 bits of the) unique identifier of note B (non-fungible token).
+18. $\mathsf{d2}_b$                 : Either the symbol code of note B (fungible token) or the (upper 64 bits of the) unique identifier of note B (non-fungible token).
+19. $\mathsf{sc}_b$                 : The code of the smart contract issuing notes A, B and C.
+20. $\rho_b$                        : Randomness to derive nullifier of note B (equals nullifier of note A).
+21. $\psi_b$                        : Additional randomness to derive nullifier of note B.
+22. $\mathsf{rcm}_b$                : Random commitment trapdoor of note commitment B.
 
 Note $C$ (transaction output):
 
-23. $\DiversifiedTransmitBase_c$
-24. $\DiversifiedTransmitPublic_c$
-25. $\mathsf{d1}_c$
-26. $\psi_c$
-27. $\mathsf{rcm}_c$
+23. $\DiversifiedTransmitBase_c$    : Address diversify hash of note C.
+24. $\DiversifiedTransmitPublic_c$  : Address public key of note C.
+25. $\mathsf{d1}_c$                 : Value of note C (fungible token only).
+26. $\psi_c$                        : Additional randomness to derive nullifier of note C.
+27. $\mathsf{rcm}_c$                : Random commitment trapdoor of note commitment C.
 
 ## Public Inputs
 The following list contains all public inputs to the top level ZEOS action circuit.
 
-TODO: DEFINE SYMBOLS
-
-1. $\mathsf{ANCHOR}$
-2. $\mathsf{NF}$
-3. $\mathsf{RK}$
-4. $\mathsf{NFT}$
-5. $\mathsf{B}_{d1}$
-6. $\mathsf{B}_{d2}$
-7. $\mathsf{B}_{sc}$
-8. $\mathsf{C}_{d1}$
-9. $\mathsf{CM}_B$
-10. $\mathsf{CM}_C$
+1. $\mathsf{ANCHOR}$                : Merkle tree root of authentication path of note A (see p. 17 to 19 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+2. $\mathsf{NF}$                    : Nullifier of note A (see p. 56 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+3. $\mathsf{RK}$                    : Spend Authority of ($\alpha$, $\mathsf{ak}$) (see p. 61 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
+4. $\mathsf{NFT}$                   : Indicates if notes in circuit represent NFTs or fungible tokens.
+5. $\mathsf{B}_{d1}$                : Exposes value (fungible token) or unique id (non-fungible token) of note B in case of MINT or BURN.
+6. $\mathsf{B}_{d2}$                : Exposes symbol (fungible token) or unique id (non-fungible token) of note B in case of MINT or BURN.
+7. $\mathsf{B}_{sc}$                : Exposes smart contract code of note B in case of MINT or BURN.
+8. $\mathsf{C}_{d1}$                : Exposes value of note C in case of BURNFT2 (fungible tokens only).
+9. $\mathsf{CM}_B$                  : Note commitment of note B.
+10. $\mathsf{CM}_C$                 : Note commitment of note C.
 
 ## Internal Helper Signals
 The following signals are circuit-internal only. They are defined as helpers for the following equations and expressions in this document.
 
-TODO: DEFINE SYMBOLS
-
-1. $\mathsf{root}$
-2. $\mathsf{cm}_a'$
-3. $\DiversifiedTransmitPublic_a'$
-4. $\mathsf{rk}$
-5. $\mathsf{nf}_a$
-6. $\mathsf{cm}_b$
-7. $\mathsf{cm}_c$
+1. $\mathsf{root}$                  : Derived root of merkle path of note A (must equal $\mathsf{ANCHOR}$).
+2. $\mathsf{cm}_a'$                 : Derived commitment of note A (must equal $\mathsf{cm}_a$).
+3. $\DiversifiedTransmitPublic_a'$  : Derived address public key of note A (must equal $\DiversifiedTransmitPublic_a$).
+4. $\mathsf{rk}$                    : Derived spend authority of note A (must equal $\mathsf{RK}$).
+5. $\mathsf{nf}_a$                  : Derived nullifier of note A (must equal $\mathsf{NF}$).
+6. $\mathsf{cm}_b$                  : Derived commitment of note B (must equal $\mathsf{CM}_B$).
+7. $\mathsf{cm}_c$                  : Derived commitment of note C (must equal $\mathsf{CM}_C$).
 
 ## Constraints
 The following statements for private and public inputs must hold. All statements have to be expressed in form of an equation evaluating to zero.
