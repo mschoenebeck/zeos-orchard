@@ -255,12 +255,12 @@ impl plonk::Circuit<pallas::Base> for Circuit {
                         cmc.clone() * (cmc - cm_c),
                     ),
                     (
-                        "Either acc_b = 0, or acc_b = accb",
-                        acc_b.clone() * (acc_b - accb),
+                        "acc_b = accb",
+                        acc_b - accb,
                     ),
                     (
-                        "Either acc_c = 0, or acc_c = accc",
-                        acc_c.clone() * (acc_c - accc),
+                        "acc_c = accc",
+                        acc_c - accc,
                     ),
                 ],
             )
