@@ -1,0 +1,9 @@
+# Introduction
+
+The protocol presented here is a fork of the [Zcash Orchard Shielded Protocol](https://zips.z.cash/zip-0224), but tailored for [EOSIO/Antelope](https://antelope.io/) blockchains and their asset classes. One of the key differences with Zcash is that the ZEOS Orchard Shielded Protocol is implemented as a smart contract on a general purpose blockchain (rather than as a stand-alone application on its own blockchain). Deployed on a public blockchain like the EOS mainnet, it exists as one of many applications in a rich ecosystem. This enables not only private peer-to-peer transactions, as with Zcash, but also private peer-to-contract interactions.
+
+This makes the ZEOS Orchard Shielded Protocol much more sophisticated than the original version of Zcash. After all, there is only one fungible token on the Zcash blockchain - the native Zcash cryptocurrency - and no smart contracts at all. On EOSIO/Antelope blockchains, however, there are countless tokens with different symbols and precision, which are even issued and managed by different smart contracts. Finally, there are even different token types, such as fungible and non-fungible tokens.
+
+This increased complexity in an environment of general-purpose blockchains such as EOSIO/Antelope also inevitably increases the requirements for a protocol for private transactions on such smart contract platforms. The ZEOS Orchard Shielded Protocol provides a fully comprehensive solution for user privacy in such an environment. Implemented and deployed as an application on a public blockchain such as EOS, it allows users to remain completely anonymous in their daily interactions with blockchain applications.
+
+The ZEOS Orchard Shielded Protocol enables *private DeFi* on EOSIO/Antelope blockchains.
