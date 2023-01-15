@@ -80,7 +80,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="concepts.html"><strong aria-hidden="true">1.</strong> Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/preliminaries.html"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="protocol.html" class="active"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys and Addresses</a></li><li class="chapter-item expanded "><a href="protocol/notes.html"><strong aria-hidden="true">2.2.</strong> Notes (UTXOs)</a></li><li class="chapter-item expanded "><a href="protocol/commitments.html"><strong aria-hidden="true">2.3.</strong> Note Commitments</a></li><li class="chapter-item expanded "><a href="protocol/commitment-tree.html"><strong aria-hidden="true">2.4.</strong> Note Commitment Tree</a></li><li class="chapter-item expanded "><a href="protocol/nullifiers.html"><strong aria-hidden="true">2.5.</strong> Nullifiers</a></li><li class="chapter-item expanded "><a href="protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li><li class="chapter-item expanded "><a href="protocol/circuit.html"><strong aria-hidden="true">2.7.</strong> Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="protocol/circuit/gadgets.html"><strong aria-hidden="true">2.7.1.</strong> Gadgets</a></li><li class="chapter-item expanded "><a href="protocol/circuit/commit-ivk.html"><strong aria-hidden="true">2.7.2.</strong> CommitIvk</a></li><li class="chapter-item expanded "><a href="protocol/circuit/note-commit.html"><strong aria-hidden="true">2.7.3.</strong> NoteCommit</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="introduction/preliminaries.html"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="protocol.html" class="active"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys & Addresses</a></li><li class="chapter-item expanded "><a href="protocol/notes.html"><strong aria-hidden="true">2.2.</strong> UTXOs (Notes)</a></li><li class="chapter-item expanded "><a href="protocol/in-band.html"><strong aria-hidden="true">2.3.</strong> In-band secret distribution</a></li><li class="chapter-item expanded "><a href="protocol/datasets.html"><strong aria-hidden="true">2.4.</strong> Global Data Sets</a></li><li class="chapter-item expanded "><a href="protocol/circuit.html"><strong aria-hidden="true">2.5.</strong> Arithmetic Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="protocol/circuit/zcash-circuit.html"><strong aria-hidden="true">2.5.1.</strong> Zcash Action Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="protocol/circuit/modifications.html"><strong aria-hidden="true">2.5.1.1.</strong> Modifications</a></li></ol></li><li class="chapter-item expanded "><a href="protocol/circuit/zeos-circuit.html"><strong aria-hidden="true">2.5.2.</strong> ZEOS Action Circuit</a></li><li class="chapter-item expanded "><a href="protocol/circuit/note-commit.html"><strong aria-hidden="true">2.5.3.</strong> NoteCommit</a></li></ol></li><li class="chapter-item expanded "><a href="protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -142,52 +142,25 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-<h1 id="design"><a class="header" href="#design">Design</a></h1>
-<h2 id="general-design-notes"><a class="header" href="#general-design-notes">General design notes</a></h2>
-<h3 id="requirements"><a class="header" href="#requirements">Requirements</a></h3>
+<h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>The ZEOS Orchard Shielded Protocol specifies a non-traceable UTXO transaction model implemented in an EOSIO/Antelope smart contract. This means that private ZEOS wallets do not exist directly in blockchain RAM - like EOS accounts, for example - but only in the form of UTXOs that are assigned to specific wallet addresses. Users can therefore - as with any legacy cryptocurrency - simply create a new ZEOS wallet by picking a large random number (aka private key).</p>
+<p>All assets held in private ZEOS wallets are actually in custody of the ZEOS smart contract. In order to transfer an asset from a transparent EOS account to a private ZEOS Wallet, it is actually transferred to the ZEOS smart contract, while at the same time a (private) UTXO is minted, assigned to a private ZEOS Wallet address specified by the user. UTXOs can then be transferred completely anonymously between ZEOS wallets without their ownership being traceable on chain.</p>
+<p>The only data managed by the ZEOS smart contract are cryptographic <em>commitments</em> of valid UTXOs and their <em>nullifiers</em>. The validity of commitments and nullifiers is proven to the public using <em>zero knowledge proofs</em> (more precisely: <a href="https://z.cash/technology/zksnarks/">zk-SNARKs</a>) without revealing any sensitive information about the private UTXOs themselves.</p>
+<p>Analogous to minting, UTXOs can also be burned in order to transfer an asset from a private ZEOS wallet back to a transparent EOS account. By burning the corresponding UTXO, the underlying asset is freed from custody of the ZEOS smart contract and transferred to an EOS account specified by the user. This way, assets can be freely moved between EOS accounts and ZEOS wallets.</p>
+<img align="center" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/protocol/account_wallet_movement.png?raw=true">
+<p>Privacy therefore only exists for assets &quot;inside&quot; the ZEOS application - i.e. only for assets in custody of the ZEOS smart contract and represented by UTXOs in private ZEOS wallets. The underlying EOSIO/Antelope blockchain remains transparent, of course. However, the introduction of a so-called <em>authenticator token</em> enables private token deposits and withdrawals. This means that users are able to interact directly from their ZEOS wallets with other smart contracts of the same EOSIO/Antelope blockchain - as long as those contracts implement the necessary smart contract interface of the ZEOS Orchard Shielded Protocol.</p>
+<p>The introduction of the authenticator token and the resulting private deposits and withdrawals make the ZEOS Orchard Shielded Protocol a truly universal privacy protocol for EOSIO/Antelope blockchains that can offer users of private ZEOS wallets almost the same blockchain experience as users of transparent EOS accounts - just completely anonymous.</p>
+<p>TODO:</p>
 <ul>
-<li>Keep the design close to Sapling, while eliminating aspects we don't like.</li>
+<li>whitepaper reference</li>
+<li>Zcash Spec reference (non-formal specification)</li>
 </ul>
-<h3 id="non-requirements"><a class="header" href="#non-requirements">Non-requirements</a></h3>
-<ul>
-<li>Delegated proving with privacy from the prover.
-<ul>
-<li>We know how to do this, but it would require a discrete log equality proof, and the
-most efficient way to do this would be to do RedDSA and this at the same time, which
-means more work for e.g. hardware wallets.</li>
-</ul>
-</li>
-</ul>
-<h3 id="open-issues"><a class="header" href="#open-issues">Open issues</a></h3>
-<ul>
-<li>Should we have one memo per output, or one memo per transaction, or 0..n memos?
-<ul>
-<li>Variable, or (1 or n), is a potential privacy leak.</li>
-<li>Need to consider the privacy issue related to light clients requesting individual
-memos vs being able to fetch all memos.</li>
-</ul>
-</li>
-</ul>
-<h3 id="note-structure"><a class="header" href="#note-structure">Note structure</a></h3>
-<ul>
-<li>TODO: UDAs: arbitrary vs whitelisted</li>
-</ul>
-<h3 id="typed-variables-vs-byte-encodings"><a class="header" href="#typed-variables-vs-byte-encodings">Typed variables vs byte encodings</a></h3>
-<p>For Sapling, we have encountered multiple places where the specification uses typed
-variables to define the consensus rules, but the C++ implementation in zcashd relied on
-byte encodings to implement them. This resulted in subtly-different consensus rules being
-deployed than were intended, for example where a particular type was not round-trip
-encodable.</p>
-<p>In Orchard, we avoid this by defining the consensus rules in terms of the byte encodings
-of all variables, and being explicit about any types that are not round-trip encodable.
-This makes consensus compatibility between strongly-typed implementations (such as this
-crate) and byte-oriented implementations easier to achieve.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="concepts/preliminaries.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="introduction/preliminaries.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -201,7 +174,7 @@ crate) and byte-oriented implementations easier to achieve.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="concepts/preliminaries.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="introduction/preliminaries.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Preliminaries - The ZEOS Book</title>
+        <title>Global Data Sets - The ZEOS Book</title>
 
 
         <!-- Custom HTML head -->
@@ -80,7 +80,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="../concepts.html"><strong aria-hidden="true">1.</strong> Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/preliminaries.html" class="active"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol.html"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys and Addresses</a></li><li class="chapter-item expanded "><a href="../protocol/notes.html"><strong aria-hidden="true">2.2.</strong> Notes (UTXOs)</a></li><li class="chapter-item expanded "><a href="../protocol/commitments.html"><strong aria-hidden="true">2.3.</strong> Note Commitments</a></li><li class="chapter-item expanded "><a href="../protocol/commitment-tree.html"><strong aria-hidden="true">2.4.</strong> Note Commitment Tree</a></li><li class="chapter-item expanded "><a href="../protocol/nullifiers.html"><strong aria-hidden="true">2.5.</strong> Nullifiers</a></li><li class="chapter-item expanded "><a href="../protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li><li class="chapter-item expanded "><a href="../protocol/circuit.html"><strong aria-hidden="true">2.7.</strong> Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/circuit/gadgets.html"><strong aria-hidden="true">2.7.1.</strong> Gadgets</a></li><li class="chapter-item expanded "><a href="../protocol/circuit/commit-ivk.html"><strong aria-hidden="true">2.7.2.</strong> CommitIvk</a></li><li class="chapter-item expanded "><a href="../protocol/circuit/note-commit.html"><strong aria-hidden="true">2.7.3.</strong> NoteCommit</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../introduction/preliminaries.html"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol.html"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys & Addresses</a></li><li class="chapter-item expanded "><a href="../protocol/notes.html"><strong aria-hidden="true">2.2.</strong> UTXOs (Notes)</a></li><li class="chapter-item expanded "><a href="../protocol/in-band.html"><strong aria-hidden="true">2.3.</strong> In-band secret distribution</a></li><li class="chapter-item expanded "><a href="../protocol/datasets.html" class="active"><strong aria-hidden="true">2.4.</strong> Global Data Sets</a></li><li class="chapter-item expanded "><a href="../protocol/circuit.html"><strong aria-hidden="true">2.5.</strong> Arithmetic Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/circuit/zcash-circuit.html"><strong aria-hidden="true">2.5.1.</strong> Zcash Action Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/circuit/modifications.html"><strong aria-hidden="true">2.5.1.1.</strong> Modifications</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol/circuit/zeos-circuit.html"><strong aria-hidden="true">2.5.2.</strong> ZEOS Action Circuit</a></li><li class="chapter-item expanded "><a href="../protocol/circuit/note-commit.html"><strong aria-hidden="true">2.5.3.</strong> NoteCommit</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -142,17 +142,31 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-<h1 id="preliminaries"><a class="header" href="#preliminaries">Preliminaries</a></h1>
+<h1 id="global-data-sets"><a class="header" href="#global-data-sets">Global Data Sets</a></h1>
+<p>The ZEOS smart contract maintains the following global data sets which define the state of the UTXO transaction model.</p>
+<h2 id="commitment-tree"><a class="header" href="#commitment-tree">Commitment Tree</a></h2>
+<p>The UTXO Commitment Tree is a merkle tree managed by the ZEOS smart contract. It is instantiated with the <a href="https://zcash.github.io/halo2/design/gadgets/sinsemilla.html">Sinsemilla</a> hash function, which can be efficiently implemented in Halo 2 arithmetic circuits. The leaves of the tree contain all existing and thus valid UTXO commitments. Thus, each UTXO that is newly created either by minting or transfer has an associated commitment leaf in the merkle tree. The number of leaves in the tree defines the size of the so-called <em>anonymity set</em>, which is directly determined by the depth of the tree.</p>
+<img align="center" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/protocol/tree.png?raw=true">
+<p>The tree is always filled from left to right. Depending on the depth of the tree, there is room for a certain amount of leaves per tree. When a tree is full, it 'overflows' to the right into a new, empty tree. Each time one or more leaves are added, the root of the tree is updated.</p>
+<h3 id="commitment-tree-root-set"><a class="header" href="#commitment-tree-root-set">Commitment Tree Root Set</a></h3>
+<p>In addition to the tree itself, the ZEOS smart contract maintains a set of merkle nodes in which all valid tree roots that have ever been created are being recorded. This way, the anonymity set of the protocol can be easily configured via the merkle tree depth, without having to worry about how many trees exist at a given time or to which tree a certain leaf (aka UTXO commitment) belongs.</p>
+<p>For a UTXO to be valid, the following must be true: There exists (or existed) a merkle path that leads (or led) to a valid merkle root. This must be proven via zero knowledge proof for a UTXO in order to be spent.</p>
+<p>The Commitment Tree itself as well as the Commitment Tree Roots set are both part of the global UTXO transaction state.</p>
+<h2 id="nullifier-set"><a class="header" href="#nullifier-set">Nullifier Set</a></h2>
+<p>The UTXO Nullifier Set maintains a list of all nullifiers that have been publicly exposed. Each nullifier invalidates a particular UTXO which prevents double spending. The validity of nullifiers must be proven via zero knowledge proof in order to be able to spend UTXOs.</p>
+<p>The Nullifier Set is part of the global UTXO transaction state.</p>
+<h2 id="transmitted-utxo-ciphertext-list"><a class="header" href="#transmitted-utxo-ciphertext-list">Transmitted UTXO Ciphertext List</a></h2>
+<p>This global list of transmitted UTXO ciphertexts is used for the <a href="in-band.html">In-band secret distribution of UTXOs</a>. It is not part of the global UTXO transaction state and its usage is optional.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../concepts.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../protocol/in-band.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../protocol.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../protocol/circuit.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -162,11 +176,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../concepts.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../protocol/in-band.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../protocol.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../protocol/circuit.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

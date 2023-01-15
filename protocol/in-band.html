@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Gadgets - The ZEOS Book</title>
+        <title>In-band secret distribution - The ZEOS Book</title>
 
 
         <!-- Custom HTML head -->
@@ -12,21 +12,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-        <link rel="icon" href="../../favicon.svg">
-        <link rel="shortcut icon" href="../../favicon.png">
-        <link rel="stylesheet" href="../../css/variables.css">
-        <link rel="stylesheet" href="../../css/general.css">
-        <link rel="stylesheet" href="../../css/chrome.css">
-        <link rel="stylesheet" href="../../css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="../../fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -34,7 +34,7 @@
     <body>
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "../../";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -80,7 +80,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="../../concepts.html"><strong aria-hidden="true">1.</strong> Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../concepts/preliminaries.html"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="../../protocol.html"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys and Addresses</a></li><li class="chapter-item expanded "><a href="../../protocol/notes.html"><strong aria-hidden="true">2.2.</strong> Notes (UTXOs)</a></li><li class="chapter-item expanded "><a href="../../protocol/commitments.html"><strong aria-hidden="true">2.3.</strong> Note Commitments</a></li><li class="chapter-item expanded "><a href="../../protocol/commitment-tree.html"><strong aria-hidden="true">2.4.</strong> Note Commitment Tree</a></li><li class="chapter-item expanded "><a href="../../protocol/nullifiers.html"><strong aria-hidden="true">2.5.</strong> Nullifiers</a></li><li class="chapter-item expanded "><a href="../../protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li><li class="chapter-item expanded "><a href="../../protocol/circuit.html"><strong aria-hidden="true">2.7.</strong> Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../protocol/circuit/gadgets.html" class="active"><strong aria-hidden="true">2.7.1.</strong> Gadgets</a></li><li class="chapter-item expanded "><a href="../../protocol/circuit/commit-ivk.html"><strong aria-hidden="true">2.7.2.</strong> CommitIvk</a></li><li class="chapter-item expanded "><a href="../../protocol/circuit/note-commit.html"><strong aria-hidden="true">2.7.3.</strong> NoteCommit</a></li></ol></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">ZEOS</a></li><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../introduction/preliminaries.html"><strong aria-hidden="true">1.1.</strong> Preliminaries</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol.html"><strong aria-hidden="true">2.</strong> Protocol</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/keys.html"><strong aria-hidden="true">2.1.</strong> Keys & Addresses</a></li><li class="chapter-item expanded "><a href="../protocol/notes.html"><strong aria-hidden="true">2.2.</strong> UTXOs (Notes)</a></li><li class="chapter-item expanded "><a href="../protocol/in-band.html" class="active"><strong aria-hidden="true">2.3.</strong> In-band secret distribution</a></li><li class="chapter-item expanded "><a href="../protocol/datasets.html"><strong aria-hidden="true">2.4.</strong> Global Data Sets</a></li><li class="chapter-item expanded "><a href="../protocol/circuit.html"><strong aria-hidden="true">2.5.</strong> Arithmetic Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/circuit/zcash-circuit.html"><strong aria-hidden="true">2.5.1.</strong> Zcash Action Circuit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../protocol/circuit/modifications.html"><strong aria-hidden="true">2.5.1.1.</strong> Modifications</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol/circuit/zeos-circuit.html"><strong aria-hidden="true">2.5.2.</strong> ZEOS Action Circuit</a></li><li class="chapter-item expanded "><a href="../protocol/circuit/note-commit.html"><strong aria-hidden="true">2.5.3.</strong> NoteCommit</a></li></ol></li><li class="chapter-item expanded "><a href="../protocol/actions.html"><strong aria-hidden="true">2.6.</strong> Actions</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -112,7 +112,7 @@
                     <h1 class="menu-title">The ZEOS Book</h1>
 
                     <div class="right-buttons">
-                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
@@ -142,55 +142,21 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-<h1 id="gadgets"><a class="header" href="#gadgets">Gadgets</a></h1>
-<p>The Orchard circuit makes use of the following gadgets from the <code>halo2_gadgets</code> crate:</p>
-<ul>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/ecc.html">Elliptic curve</a>:
-<ul>
-<li><code>FixedPoint</code></li>
-<li><code>FixedPointBaseField</code></li>
-<li><code>FixedPointShort</code></li>
-<li><code>NonIdentityPoint</code></li>
-<li><code>Point</code></li>
-</ul>
-</li>
-<li>Poseidon:
-<ul>
-<li><code>Hash&lt;ConstantLength&gt;</code></li>
-</ul>
-</li>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/sinsemilla.html">Sinsemilla</a>:
-<ul>
-<li><code>CommitDomain</code></li>
-<li><code>Message</code></li>
-<li><code>MessagePiece</code></li>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/sinsemilla/merkle-crh.html"><code>MerklePath</code></a></li>
-</ul>
-</li>
-</ul>
-<p>It instantiates the instruction sets required for these gadgets with the following chips:</p>
-<ul>
-<li><code>halo2_gadgets::ecc::chip::EccChip</code></li>
-<li><code>halo2_gadgets::poseidon::Pow5Chip</code></li>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/sinsemilla.html#plonk--halo-2-constraints"><code>halo2_gadgets::sinsemilla::chip::SinsemillaChip</code></a></li>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/sinsemilla/merkle-crh.html#circuit-components"><code>halo2_gadgets::sinsemilla::merkle::chip::MerkleChip</code></a></li>
-<li><code>halo2_gadgets::utilities::UtilitiesInstructions</code></li>
-<li><a href="https://zcash.github.io/halo2/design/gadgets/decomposition.html#lookup-decomposition"><code>halo2_gadgets::utilities::lookup_range_check::LookupRangeCheckConfig</code></a></li>
-</ul>
-<p>It also makes use of the following utility functions for standardising constraints:</p>
-<ul>
-<li><code>halo2_gadgets::utilities::{bitrange_subset, bool_check}</code></li>
-</ul>
+<h1 id="in-band-secret-distribution-of-utxos"><a class="header" href="#in-band-secret-distribution-of-utxos">In-band secret distribution of UTXOs</a></h1>
+<p>The sender of a UTXO must be able to transmit the sensitive information (i.e. the UTXO tuple) to the receiver. After all, these are required so that receivers of UTXOs can successfully spend them. Thus, a private communication channel is needed through which the sensitive UTXO tuples can be transmitted.</p>
+<p>For this purpose, Zcash Orchard - like all existing privacy coins in the space - uses the underlying blockchain itself: Each UTXO tuple is encrypted and its ciphertext uploaded to the blockchain where it can be fetched and decrypted by the receiver. For the ZEOS Orchard Shielded Protocol a global data structure called <em>Transmitted UTXO Ciphertext List</em> is maintained by the ZEOS smart contract in which UTXO ciphertexts can be added. </p>
+<p>The use of this communication channel is optional. It is important to kep in mind that all encrypted UTXOs added to that list become part of the underlying EOSIO/Antelope blockchain history which never forgets. At some point in the future the currently used encryption scheme might become unsafe and thus privately transmitted UTXO ciphertexts using this on chain communication channel might become traceable.</p>
+<p>The exact encryption scheme based on Incoming, Outgoing and Full viewing Key is described in section 4.19 of the <a href="https://zips.z.cash/protocol/protocol.pdf">Zcash Protocol Specification</a>) and is adopted exactly the same way for the ZEOS Orchard Shielded Protocol.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../../protocol/circuit.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../protocol/notes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../../protocol/circuit/commit-ivk.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../protocol/datasets.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -200,11 +166,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../../protocol/circuit.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../protocol/notes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../../protocol/circuit/commit-ivk.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../protocol/datasets.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -219,13 +185,13 @@
         </script>
 
 
-        <script src="../../elasticlunr.min.js"></script>
-        <script src="../../mark.min.js"></script>
-        <script src="../../searcher.js"></script>
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
 
-        <script src="../../clipboard.min.js"></script>
-        <script src="../../highlight.js"></script>
-        <script src="../../book.js"></script>
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
 
