@@ -23,6 +23,6 @@
     - [BURNFT2](protocol/zactions/burnft2.md)
     - [BURNNFT](protocol/zactions/burnnft.md)
     - [BURNAT](protocol/zactions/burnat.md)
+  - [Proof Bundling in EOSIO/Antelope Transactions](protocol/proof-bundling.md)
   - [Private Deposits & Withdrawals](protocol/private-deposits-withdrawals.md)
-  - [Proof Bundling for EOSIO/Antelope Transactions](protocol/proof-bundling.md)
 - [Application](application.md)
