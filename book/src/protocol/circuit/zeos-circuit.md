@@ -1,9 +1,7 @@
 # ZEOS Action Circuit
 <img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
-- $C_{zeos}$
-
-As in Zcash Orchard there is only one circuit which is used to generate proofs for all private actions. The ZEOS Orchard circuit is very similar to the Zcash circuit. It can be divided into three parts: A, B and C. Each circuit part represents a note and the action circuit describes their relationship to each other. There are two main configurations for this circuit.
+As in Zcash Orchard there is only one circuit which is used to generate proofs for all privacy actions. The ZEOS Orchard circuit, $C_{zeos}$, is very similar to the Zcash Orchard circuit. It can be divided into three parts: A, B and C. Each circuit part represents a UTXO and the action circuit describes their relationship to each other. There are two main configurations for this circuit.
 
 It is either:
 
@@ -13,9 +11,9 @@ or
 
 2. $$A = C = 0$$
 
-The first configuration is used for all transfer and burn actions. Note $A$ represents the note which is being spent by the action. Note $B$ represents the receiving part of the action whereas note $C$ represents the 'change' which goes usually back into the wallet of the sender (spender of note $A$). Hence the relation $A = B + C$ between the notes.
+The first configuration is used for all transfer and burn actions. UTXO $A$ represents the note which is being spent by the action. UTXO $B$ represents the receiving part of the action whereas UTXO $C$ represents the 'change' which goes usually back into the wallet of the sender (spender of UTXO $A$). Hence the relation $A = B + C$ between the UTXOs.
 
-In case of NFT transfers (or burns) note $C$ is always zero which enforces $A = B$. This statement must be true for NFT transfers since NFTs are not divisable.
+In case of NFT transfers (or burns) UTXO $C$ is always zero which enforces $A = B$. This statement must be true for NFT transfers since NFTs are not divisable.
 
 The second configuration is used for minting notes only. The configuration $A = B = 0$ effectively disables the circuit parts $A$ and $C$ leaving only part $B$ enabled.
 
