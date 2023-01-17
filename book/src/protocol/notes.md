@@ -11,7 +11,7 @@ While there is only one fungible token in Zcash - the native cryptocurrency ZEC 
   These tokens represent a *permission* to access specific assets in custody of a specific smart contract. They are characterized by the *code* of the respective smart contract and their $\NoteCommit$ value.
 
 ## Tuple
-To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in Section 3.2 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)) is extended to include the following values:
+To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in Section 3.2 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf) is extended to include the following values:
 
 - $\mathsf{d}$ is the diversifier of the recipient’s shielded payment address
 - $\DiversifiedTransmitPublic$ is the diversified transmission key of the recipient’s shielded payment address
@@ -21,12 +21,14 @@ To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in
 - $\mathsf{nft}$ is a boolean determining if this UTXO is a fungible token (FT) or non-fungible token (NFT or AT)
 - $\rho$ is used to derive the nullifier of the UTXO
 - $\psi$ is additional randomness used in deriving the nullifier
-- $\mathsf{rcm}$ is a random commitment trapdoor as defined in section 4.1.8 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf))
+- $\mathsf{rcm}$ is a random commitment trapdoor as defined in section 4.1.8 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)
+
+Note: In addition to the above listed attributes each UTXO struct contains a header field (64 bit) and a memo field (512 bytes).
 
 ## Commitment
 When UTXOs are created (through minting or transfer), only a cryptographic *commitment* called $\NoteCommit$ to the tupel attributes listed above is publicly disclosed and added to a global data structure called *Commitment Tree*. This allows the sensitive information such as amount, symbol, and recipient of the UTXO to be kept secret, while the commitment is used by the zk-SNARK proof to verify that the UTXO's secret information is valid.
 
-Since the UTXO tuple has been extended for the ZEOS Orchard Shielded Protocol, the definition of the UTXO Commitment must also be modified. The original $\NoteCommit$ is defined in section 5.4.8.4 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)). It is changed to:
+Since the UTXO tuple has been extended for the ZEOS Orchard Shielded Protocol, the definition of the UTXO Commitment must also be modified. The original $\NoteCommit$ is defined in section 5.4.8.4 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf). It is changed to:
 
 $$\NoteCommit_{\mathsf{rcm}}^{\mathsf{Orchard}}(\DiversifiedTransmitBaseRepr, \DiversifiedTransmitPublicRepr, \mathsf{d1}, \rho, \psi, \mathsf{d2}, \mathsf{sc}, \mathsf{nft}) := \SinsemillaCommit_{\mathsf{rcm}}(\textsf{"z.cash:Orchard-NoteCommit"}, 
   \DiversifiedTransmitBaseRepr \bconcat
@@ -41,4 +43,8 @@ $$\NoteCommit_{\mathsf{rcm}}^{\mathsf{Orchard}}(\DiversifiedTransmitBaseRepr, \D
 ## Nullifier
 Each UTXO has a unique *nullifier* which is deterministically derived from the UTXO tuple. Spending a UTXO invalidates it by publicly announcing the associated nullifier and adding it to the global set of all nullifiers called *Nullifier Set*. Analogous to the UTXO commitment, this way the sensitive information (amount, symbol, receiver) of the UTXO can be kept secret, while the nullifier is used by the zk-SNARK proof to check whether the nullifier is valid. That is, whether it actually nullifies an existing valid UTXO. Furthermore, the smart contract must check if the nullifier does not yet exist in the global set of all nullifiers to avoid double spends.
 
-The exact function for deriving the nullifier is defined in section 4.16 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)). No modification is required, since it depends only on the UTXO randomness as well as its commitment. The latter has already been adapted to the new UTXO tuple structure (see previous section).
+The exact function for deriving the nullifier is defined in section 4.16 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
+
+$$\mathsf{DeriveNullifier_{nk}}(\rho, \psi, \mathsf{cm}) = \mathsf{Extract_{\mathbb{P}}}\big([(\mathsf{PRF_{nk}^{nfOrchard}}(\rho) + \psi) \bmod q_{\mathbb{P}}] \mathcal{K}^\mathsf{Orchard} + \mathsf{cm}\big)$$
+
+No modification is required, since it depends only on the UTXO randomness as well as its commitment. The latter has already been adapted to the new UTXO tuple structure (see previous section).

@@ -8,3 +8,11 @@ The Zcash Orchard Shielded Protocol, for example, is based on the Halo 2 Proving
 For example, in the protocol evolution from Zcash Sprout to Zcash Sapling, the hash function used in the Merkle tree was changed from [Sha256 to Blake2s](https://github.com/zcash/zcash/issues/2258), since the latter leads to a significantly lower number of constraints in a Groth16 proving system (over the curves Bls12-381/Jubjub) and R1CS arithmetization. There are a number of interesting discussions on this topic by Zcash developers on [Github](https://github.com/zcash/zcash/issues/2233).
 
 The arithmetic circuit is of critical importance to the protocol, as it defines exactly what a valid UTXO action (transaction) is. In the following, we will first roughly explain the arithmetic circuit of the Zcash Orchard Shielded Protocol and then describe the changes that lead to the design of the ZEOS Orchard Shielded Protocol arithmetic circuit.
+
+## Notation
+The following notation is used to formally express functions and variables of arithmetic circuits.
+
+- $\omega$: The private inputs of an arithmetic circuit
+- $x$: The public inputs of an arithmetic circuit
+- $C$: An arithmetic circuit $C : (\omega, x) \to \lbrace 0, 1 \rbrace$
+- $\pi_{C, \omega, x}$: A proof for a circuit $C$ with arguments $(\omega, x)$

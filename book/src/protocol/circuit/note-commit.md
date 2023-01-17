@@ -1,4 +1,9 @@
-# NoteCommit
+# NoteCommit Chip
+Besides the changes in the top level design, the $\NoteCommit$ chip has to be adapted to the new UTXO tuple. However, these adaptations are *not trivial*.
+
+The Sinsemilla hash function operates on multiples of 10 bits of the input message. However, since this is an implementation within an *arithmetic* circuit (and not an integrated circuit) there are no bits and bytes, only field elements (aka large numbers) as input signals. Thus, the various elements of the UTXO tuple must first be decomposed so that they can be concatenated into chunks of 10 bits and the message parts finally digested as 10 bit chunks. This requires canonicity checks for the value ranges of all message parts.
+
+Compare the [original version](https://zcash.github.io/orchard/design/circuit/note-commit.html) of this chip from the Zcash Orchard Shielded Protocol.
 
 ## Message decomposition
 

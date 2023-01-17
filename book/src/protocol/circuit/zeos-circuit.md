@@ -1,6 +1,8 @@
 # ZEOS Action Circuit
 <img align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/ABC.png?raw=true">
 
+- $C_{zeos}$
+
 As in Zcash Orchard there is only one circuit which is used to generate proofs for all private actions. The ZEOS Orchard circuit is very similar to the Zcash circuit. It can be divided into three parts: A, B and C. Each circuit part represents a note and the action circuit describes their relationship to each other. There are two main configurations for this circuit.
 
 It is either:
@@ -21,7 +23,7 @@ See also:
 - the [schematic](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action_circuit_schematic.pdf) of the action circuit (TODO: Legend)
 - the [layout](https://github.com/mschoenebeck/zeos-docs/blob/main/action_circuit/action-circuit-layout.png) of the action circuit (column types explained [here](https://halo2.dev/))
 
-## Private Inputs
+## Private Inputs ($\omega$)
 The following list contains all private inputs to the top level ZEOS action circuit.
 
 Note $A$ (action input):
@@ -62,7 +64,7 @@ Note $C$ (action output):
 28. $\mathsf{rcm}_c$                : Random commitment trapdoor of note commitment C.
 29. $\mathsf{acc}_c$                : Code of EOS account in which this note is 'burned'.
 
-## Public Inputs
+## Public Inputs ($x$)
 The following list contains all public inputs to the top level ZEOS action circuit.
 
 1. $\mathsf{ANCHOR}$                : Merkle tree root of authentication path of note A (see p. 17 to 19 [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)).
@@ -126,14 +128,14 @@ For circuit part C the following constraints must hold:
 17. $$\mathsf{ACC}_C - \mathsf{acc}_c = 0$$
 
 ## Valid Circuit Configurations
-The following table lists the zactions and their corresponding circuit configurations.
+The following table lists the zactions and the corresponding configurations of the circuit's public inputs $x$.
 
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \hline
 \mathsf{ZAction} & \mathsf{ANCHOR} & \mathsf{NF} & \mathsf{RK_x} & \mathsf{RK_y} & \mathsf{NFT} & \mathsf{B}_{d1} & \mathsf{B}_{d2} & \mathsf{B}_{sc} & \mathsf{C}_{d1} & \mathsf{CM}_B & \mathsf{CM}_C & \mathsf{ACC}_B & \mathsf{ACC}_C \\\hline
 MINTFT & 0 & 0 & 0 & 0 & 0 & \mathsf{d1}_b & \mathsf{d2}_b & \mathsf{sc}_b & 0 & \mathsf{cm}_b & 0 & 0 & 0 \\\hline
-MINTNFT/BURNAUTH & 0 & 0 & 0 & 0 & 1 & \mathsf{d1}_b & \mathsf{d2}_b & \mathsf{sc}_b & 0 & \mathsf{cm}_b & 0 & 0 & 0 \\\hline
+MINTNFT/BURNAT & 0 & 0 & 0 & 0 & 1 & \mathsf{d1}_b & \mathsf{d2}_b & \mathsf{sc}_b & 0 & \mathsf{cm}_b & 0 & 0 & 0 \\\hline
 TRANSFERFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & \mathsf{cm}_c & 0 & 0 \\\hline
 TRANSFERNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 1 & 0 & 0 & 0 & 0 & \mathsf{cm}_b & 0 & 0 & 0 \\\hline
 BURNFT & \mathsf{root} & \mathsf{nf}_a & \mathsf{rk}_x & \mathsf{rk}_y & 0 & \mathsf{d1}_b & \mathsf{d2}_b & \mathsf{sc}_b & 0 & 0 & \mathsf{cm}_c & \mathsf{acc}_b & 0 \\\hline
@@ -168,8 +170,8 @@ $\Rightarrow \mathsf{acc}_b = 0$ because of constraint (13)
 Given: $\mathsf{ACC}_C = 0 $\
 $\Rightarrow \mathsf{acc}_c = 0$ because of constraint (17)
 
-### MINTNFT/BURNAUTH
-Note: The actions MINTNFT and BURNAUTH share the exact same circuit configuration.
+### MINTNFT/BURNAT
+Note: The actions MINTNFT and BURNAT share the exact same circuit configuration.
 $
 \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
 \hline
