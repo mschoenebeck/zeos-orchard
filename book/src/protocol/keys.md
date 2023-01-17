@@ -1,8 +1,8 @@
 # Keys and addresses
 
-The entire underlying cryptography of the protocol is identical to Zcash Orchard and is precisely specified in the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf). The key and address derivation is thus also exactly identical. The only difference is that there are no transparent UTXOs in the ZEOS Orchard Shielded Protocol and thus no unshielded transactions. The new concept of 'Unified Payment Addresses' introduced in Zcash is therefore not adopted. In ZEOS there are only 'Shielded Payment Addresses'.
+The entire underlying cryptography of the protocol is identical to Zcash Orchard and is precisely specified in the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf). The key and address derivation is thus also exactly identical to Zcash Orchard. The only difference is that there are no transparent UTXOs in the ZEOS Orchard Shielded Protocol and thus no unshielded transactions. The newly introduced concept of 'Unified Payment Addresses' in Zcash is therefore not adopted. In ZEOS there are only 'Shielded Payment Addresses'.
 
-For a detailed explanation of all key components, please refer to the Zcash Protocol Specification, section 3.1 and section 4.2.3 respectively. In this document only the most important parts are briefly discussed. All key components are 32 bytes long.
+For a detailed explanation of all key components, please refer to the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf), section 3.1 and section 4.2.3 respectively. In this document only the most important parts are briefly discussed. All key components are 32 bytes long.
 
 <img align="center" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/protocol/keys.png?raw=true">
 
@@ -32,4 +32,4 @@ An Orchard Shielded Payment Address is 43 bytes long and consists of:
 - $\mathsf{d}$ - Diversifier (10 bytes)
 - $\DiversifiedTransmitPublic$ - Diversified Transmission Key (33 bytes)
 
-Since Zcash Orchard it is possible to derive several diversified payment addresses from one and the same spending authority. A group of such addresses share the same Full Viewing Key, Incoming Viewing Key and Outgoing Viewing Key.
+Since Zcash Orchard it is possible to deterministically derive several diversified payment addresses from one and the same spending authority. A group of such addresses share the same Full Viewing Key, Incoming Viewing Key and Outgoing Viewing Key.
