@@ -154,7 +154,7 @@ $
 <img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 
 Given: $\mathsf{ANCHOR} = \mathsf{NF} = \mathsf{RK_x} = \mathsf{RK_y} = 0 $\
-$\Rightarrow \mathsf{d1}_a = 0$ because of constraints (2), (5), (6) and (8)
+$\Rightarrow \mathsf{d1}_a = 0$ because of internal signals (1), (4), (5), (6) and constraints (2), (5), (6) and (8)
 
 Given: $\mathsf{CM}_B = \mathsf{cm}_b $\
 $\Rightarrow \mathsf{d1}_b ≠ 0$ because of internal signal (7)
@@ -181,7 +181,7 @@ $
 <img height="256" align="right" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/circuit/B.png?raw=true">
 
 Given: $\mathsf{ANCHOR} = \mathsf{NF} = \mathsf{RK_x} = \mathsf{RK_y} = 0 $\
-$\Rightarrow \mathsf{d1}_a = 0$ because of constraints (2), (5), (6) and (8)
+$\Rightarrow \mathsf{d1}_a = 0$ because of internal signals (1), (4), (5), (6) and constraints (2), (5), (6) and (8)
 
 Given: $\mathsf{CM}_B = \mathsf{cm}_b $\
 $\Rightarrow \mathsf{d1}_b ≠ 0$ because of internal signal (7)
