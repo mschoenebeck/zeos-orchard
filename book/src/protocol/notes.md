@@ -11,7 +11,7 @@ While there is only one fungible token in Zcash - the native cryptocurrency ZEC 
   These tokens represent a *permission* to access specific assets in custody of a specific smart contract. They are characterized by the *code* of the respective smart contract and their $\NoteCommit$ value.
 
 ## Tuple
-To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in Section 3.2 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf) is extended to include the following values:
+To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in Section 3.2 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf) is extended to the following structure:
 
 - $\mathsf{d}$ is the diversifier of the recipient’s shielded payment address
 - $\DiversifiedTransmitPublic$ is the diversified transmission key of the recipient’s shielded payment address
@@ -41,7 +41,7 @@ $$\NoteCommit_{\mathsf{rcm}}^{\mathsf{Orchard}}(\DiversifiedTransmitBaseRepr, \D
   \ItoLEBSP{64}(\mathsf{sc}))$$
 
 ## Nullifier
-Each UTXO has a unique *nullifier* which is deterministically derived from the UTXO tuple. Spending a UTXO invalidates it by publicly announcing the associated nullifier and adding it to the global set of all nullifiers called *Nullifier Set*. Analogous to the UTXO commitment, this way the sensitive information (amount, symbol, receiver) of the UTXO can be kept secret, while the nullifier is used by the zk-SNARK proof to check whether the nullifier is valid. That is, whether it actually nullifies an existing valid UTXO. Furthermore, the smart contract must check if the nullifier does not yet exist in the global set of all nullifiers to avoid double spends.
+Each UTXO has a unique *nullifier* which is deterministically derived from the UTXO tuple. Spending a UTXO invalidates it by publicly revealing the associated nullifier and adding it to the global set of all nullifiers called *Nullifier Set*. Analogous to the UTXO commitment, this way the sensitive information (amount, symbol, receiver) of the UTXO can be kept secret, while the nullifier is used by the zk-SNARK proof to check whether the nullifier is valid. That is, whether it actually nullifies an existing valid UTXO. Furthermore, the smart contract must check if the nullifier does not yet exist in the global set of all nullifiers to avoid double spends.
 
 The exact function for deriving the nullifier is defined in section 4.16 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
 

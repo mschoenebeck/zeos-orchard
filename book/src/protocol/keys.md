@@ -1,4 +1,4 @@
-# Keys and addresses
+# Keys & Addresses
 
 The entire underlying cryptography of the protocol is identical to Zcash Orchard and is precisely specified in the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf). The key and address derivation is thus also exactly identical to Zcash Orchard. The only difference is that there are no transparent UTXOs in the ZEOS Orchard Shielded Protocol and thus no unshielded transactions. The newly introduced concept of 'Unified Payment Addresses' in Zcash is therefore not adopted. In ZEOS there are only 'Shielded Payment Addresses'.
 
