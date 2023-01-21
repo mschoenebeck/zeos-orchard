@@ -76,8 +76,8 @@ The following list contains all public inputs to the top level ZEOS action circu
 9. $\mathsf{C}_{d1}$                : Exposes value of note C in case of BURNFT2 (fungible tokens only).
 10. $\mathsf{CM}_B$                 : Note commitment of note B.
 11. $\mathsf{CM}_C$                 : Note commitment of note C.
-12. $\mathsf{ACC}_B$                : Code of EOS account in which note B is 'burned'.
-13. $\mathsf{ACC}_C$                : Code of EOS account in which note C is 'burned'.
+12. $\mathsf{ACC}_B$                : Code of EOS account into which note B is 'burned'.
+13. $\mathsf{ACC}_C$                : Code of EOS account into which note C is 'burned'.
 
 ## Circuit Internal Signals
 The following signals are circuit-internal only.

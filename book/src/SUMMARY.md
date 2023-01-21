@@ -25,4 +25,7 @@
     - [BURNAT](protocol/zactions/burnat.md)
   - [Private Deposits & Withdrawals](protocol/private-deposits-withdrawals.md)
   - [Proof Bundling in EOSIO/Antelope Transactions](protocol/proof-bundling.md)
+    - [begin](protocol/proof-bundling/begin.md)
+    - [step](protocol/proof-bundling/step.md)
+    - [exec](protocol/proof-bundling/exec.md)
 - [Application](application.md)

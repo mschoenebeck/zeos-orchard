@@ -47,4 +47,6 @@ The exact function for deriving the nullifier is defined in section 4.16 of the 
 
 $$\mathsf{DeriveNullifier_{nk}}(\rho, \psi, \mathsf{cm}) = \mathsf{Extract_{\mathbb{P}}}\big([(\mathsf{PRF_{nk}^{nfOrchard}}(\rho) + \psi) \bmod q_{\mathbb{P}}] \mathcal{K}^\mathsf{Orchard} + \mathsf{cm}\big)$$
 
+where $\mathsf{cm}$ is the $\NoteCommit$ value of the corresponding UTXO.
+
 No modification is required, since it depends only on the UTXO randomness as well as its commitment. The latter has already been adapted to the new UTXO tuple structure (see previous section).

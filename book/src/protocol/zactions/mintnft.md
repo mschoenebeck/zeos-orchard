@@ -122,6 +122,7 @@ The ZEOS smart contract then performs the following checks:
   - $\mathsf{b.id} = x.\mathsf{B}_{d1}$
   - $0 = x.\mathsf{B}_{d2}$¹
   - $\mathsf{b.code} = x.\mathsf{B}_{sc}$
+- Is the NFT flag set ($x.\mathsf{NFT} = 1$)?
 
 ¹NFTs of smart contracts following the AtomicAssets standard have a 64 Bit unique identifier only, thus no upper 64 Bits.
 

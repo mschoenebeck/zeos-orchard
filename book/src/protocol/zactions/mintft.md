@@ -119,6 +119,7 @@ The ZEOS smart contract then performs the following checks:
   - $\mathsf{b.amount} = x.\mathsf{B}_{d1}$
   - $\mathsf{b.symbol} = x.\mathsf{B}_{d2}$
   - $\mathsf{b.code} = x.\mathsf{B}_{sc}$
+- Is the NFT flag unset ($x.\mathsf{NFT} = 0$)?
 
 ### Step 10
 If $\mathsf{true}$, the ZEOS smart contract performs the following operations:

@@ -143,6 +143,7 @@ Execute the TRANSFERFT action of the ZEOS smart contract. This action takes the 
 The ZEOS smart contract then performs the following checks:
 
 - Is the zero knowledge proof $\pi_{C_{zeos}, \omega, x}$ valid?
+- Is the NFT flag unset ($x.\mathsf{NFT} = 0$)?
 
 ### Step 12
 If $\mathsf{true}$, the ZEOS smart contract performs the following operations:
