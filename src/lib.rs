@@ -51,6 +51,8 @@ pub use tree::Anchor;
 use crate::keys::SpendingKey;
 use crate::keys::FullViewingKey;
 use crate::builder::HasMerkleTree;
+use crate::note::ExtractedNoteCommitment;
+use pasta_curves::Fp;
 
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
@@ -63,6 +65,7 @@ extern crate serde_derive;
 
 const ENDPOINTS: NonEmpty<&'static str> = nonempty![
     //"http://eos.api.eosnation.io"
+    //"https://kylin.eosn.io"
     "https://kylin-dsp-1.liquidapps.io"
 ];
 
@@ -88,8 +91,8 @@ pub async fn test_get_table_rows() -> JsValue
         index_position: "primary".to_string(),
         key_type: "uint64_t".to_string(),
         encode_type: "dec".to_string(),
-        lower_bound: 0,
-        upper_bound: 15,
+        lower_bound: 0.to_string(),
+        upper_bound: 15.to_string(),
         limit: 1,
         reverse: false,
         show_payer: false
@@ -107,18 +110,43 @@ pub async fn test_merkle_hash_fetch(index: String) -> JsValue
     let mh = thezeostoken.get_merkle_hash(index.parse::<u64>().unwrap()).await;
     match mh {
         None => JsValue::NULL,
-        Some(x) => JsValue::from_str(&hex::encode(x.1.to_bytes()))
+        Some(x) => JsValue::from_str(&hex::encode(x.inner().0[0].to_le_bytes()))
     }
 }
 
 #[wasm_bindgen]
-pub async fn test_merkle_path_fetch(leaf_index: String, leaf_count: String) -> JsValue
+pub async fn test_merkle_index_fetch(hash: String) -> JsValue
+{
+    let mut arr = [0; 32];
+    assert!(hex::decode_to_slice(hash, &mut arr).is_ok());
+    let value = ExtractedNoteCommitment::from(Fp([
+        u64::from_le_bytes(arr[ 0.. 8].try_into().unwrap()),
+        u64::from_le_bytes(arr[ 8..16].try_into().unwrap()),
+        u64::from_le_bytes(arr[16..24].try_into().unwrap()),
+        u64::from_le_bytes(arr[24..32].try_into().unwrap())
+    ]));
+    let thezeostoken = TokenContract::new(ENDPOINTS.map(String::from));
+    let index = thezeostoken.get_merkle_index(value).await;
+    match index {
+        None => JsValue::NULL,
+        Some(x) => JsValue::from_str(&x.to_string())
+    }
+}
+
+#[wasm_bindgen]
+pub async fn test_merkle_path_fetch(array_index: String, leaf_count: String) -> JsValue
 {
     // remember to set the correct merkle tree depth in constants.rs
     let mut thezeostoken = TokenContract::new(ENDPOINTS.map(String::from));
-    let path = thezeostoken.get_merkle_path(leaf_index.parse::<u64>().unwrap(), leaf_count.parse::<u64>().unwrap()).await;
+    let path = thezeostoken.get_sister_path(array_index.parse::<u64>().unwrap(), leaf_count.parse::<u64>().unwrap()).await;
 
-    let str = format!("{}, [({:?}), ({:?}), ({:?}), ({:?})]", path.position(), hex::encode(path.auth_path()[0].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[1].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[2].inner().0[0].to_le_bytes()), hex::encode(path.auth_path()[3].inner().0[0].to_le_bytes()));
+    let str = format!("{}, [({}), ({}), ({}), ({})]",
+        path.position(),
+        hex::encode(path.auth_path()[0].inner().0[0].to_le_bytes()),
+        hex::encode(path.auth_path()[1].inner().0[0].to_le_bytes()),
+        hex::encode(path.auth_path()[2].inner().0[0].to_le_bytes()),
+        hex::encode(path.auth_path()[3].inner().0[0].to_le_bytes())
+    );
     JsValue::from_str(&str)
 }
 

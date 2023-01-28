@@ -62,12 +62,18 @@ pub struct EOSActionDesc
 /// ...
 pub trait HasMerkleTree
 {
-    /// fetches an entire merkle path asynchronously
-    async fn get_merkle_path(
+    /// fetches the sister path of node with array_index
+    async fn get_sister_path(
         &mut self,
-        leaf_index: u64,
+        array_index: u64,
         leaf_count: u64,
     ) -> MerklePath;
+
+    /// fetches a merkle node index by value of the note commitment
+    async fn get_merkle_index(
+        &self,
+        hash: ExtractedNoteCommitment
+    ) -> Option<u64>;
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -320,8 +326,7 @@ impl TransactionBuilder
                             let rza = RawZAction::from_parts(
                                 desc.za_type,
                                 &fvk,
-                                //Some(merkle_path.2(spent_notes[i].leaf_index, merkle_path.0, merkle_path.1)),
-                                Some(contract.get_merkle_path(spent_notes[i].leaf_index, self.leaf_count).await),
+                                Some(contract.get_sister_path(contract.get_merkle_index(spent_notes[i].note.commitment().into()).await.unwrap(), self.leaf_count).await),
                                 Some(spent_notes[i].note),
                                 Some(note_b),
                                 Some(note_c),
@@ -364,8 +369,7 @@ impl TransactionBuilder
                         let rza = RawZAction::from_parts(
                             desc.za_type,
                             &fvk,
-                            //Some(merkle_path.2(spent_note.leaf_index, merkle_path.0, merkle_path.1)),
-                            Some(contract.get_merkle_path(spent_note.leaf_index, self.leaf_count).await),
+                            Some(contract.get_sister_path(contract.get_merkle_index(spent_note.note.commitment().into()).await.unwrap(), self.leaf_count).await),
                             Some(spent_note.note),
                             Some(note_b),
                             None,
@@ -486,10 +490,10 @@ mod tests
     {
         let mut rng = OsRng.clone();
         let mut notes = Vec::new();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(1), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let nc = notes[3].note.commitment().into();
 
         let (mut spent_notes, change) = select_fungible_notes(&mut notes, 6, 1, 1).unwrap();
@@ -511,10 +515,15 @@ mod tests
     pub struct DummyContract;
     impl HasMerkleTree for DummyContract
     {
-        async fn get_merkle_path(&mut self, _leaf_index: u64, _leaf_count: u64) -> MerklePath
+        async fn get_sister_path(&mut self, _array_index: u64, _leaf_count: u64) -> MerklePath
         {
             let mut rng = OsRng.clone();
             MerklePath::dummy(&mut rng)
+        }
+
+        async fn get_merkle_index(&self, _hash: ExtractedNoteCommitment) -> Option<u64>
+        {
+            Some(0)
         }
     }
 
@@ -523,10 +532,10 @@ mod tests
     {
         let mut rng = OsRng.clone();
         let mut notes = Vec::new();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(name_to_value(&"nftzeostoken".to_string())), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, Address::dummy(&mut rng), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_AT, Address::dummy(&mut rng), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(name_to_value(&"nftzeostoken".to_string())), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
 
         let sk = SpendingKey::from_zip32_seed(b"miau seed miau 123 Der seed muss lang genug sein...", 0, 0).unwrap();
@@ -581,12 +590,12 @@ mod tests
         let fvk: FullViewingKey = (&sk).into();
         
         let mut notes = Vec::new();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(5), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(3), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(2), NoteValue::from_raw(1), NoteValue::from_raw(name_to_value(&"thezeostoken".to_string())), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_AT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(1337), NoteValue::from_raw(0), NoteValue::from_raw(111), NoteValue::from_raw(1), Nullifier::dummy(&mut rng), rng, [0; 512])});
         let _nc: ExtractedNoteCommitment = notes[3].note.commitment().into();
-        notes.push(NoteEx{id: 0, block_number: 0, leaf_index:0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
+        notes.push(NoteEx{id: 0, block_number: 0, note: Note::new(NT_FT, fvk.address_at(0u32, Scope::External), NoteValue::from_raw(10000), NoteValue::from_raw(1397703940), NoteValue::from_raw(6138663591592764928), NoteValue::from_raw(0), Nullifier::dummy(&mut rng), rng, [0; 512])});
 
         let newstock1dex_auth = [EOSAuthorization{actor: "newstock1dex".to_string(), permission: "active".to_string()}; 1];
         let thezeostoken_auth = [EOSAuthorization{actor: "thezeostoken".to_string(), permission: "active".to_string()}; 1];

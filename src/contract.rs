@@ -39,9 +39,6 @@ pub struct TransmittedNoteCiphertextEx
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
     block_number: u64,
-    /// The current leaf index of the merkle tree when this note was
-    /// added to the global list of encrypted notes
-    leaf_index: u64,
     /// The actual encrypted note
     encrypted_note: TransmittedNoteCiphertext
 }
@@ -75,7 +72,6 @@ impl TransmittedNoteCiphertextEx
                 Some(NoteEx {
                     id: self.id,
                     block_number: self.block_number,
-                    leaf_index: self.leaf_index,
                     note: decrypted_note
                 })
             },
@@ -95,7 +91,6 @@ impl TransmittedNoteCiphertextEx
                 Some(NoteEx {
                     id: self.id,
                     block_number: self.block_number,
-                    leaf_index: self.leaf_index,
                     note: decrypted_note
                 })
             },
@@ -113,9 +108,6 @@ pub struct NoteEx
     /// The current EOS block number when this note was added to the 
     /// global list of encrypted notes
     pub(crate) block_number: u64,
-    /// The current leaf index of the merkle tree when this note was
-    /// added to the global list of encrypted notes
-    pub(crate) leaf_index: u64,
     /// The actual Note
     pub(crate) note: Note
 }
@@ -387,10 +379,8 @@ pub struct EOSGetTableRowsPayload
     pub index_position: String,     // 'primary', 'secondary', 'tertiary', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth' or 'tenth', default: 'primary'?
     pub key_type: String,           // 'uint64_t' or 'name', default: 'uint64_t'?
     pub encode_type: String,        // 'dec' or 'hex', default: 'dec'
-    #[serde(with = "string")]
-    pub lower_bound: u64,
-    #[serde(with = "string")]
-    pub upper_bound: u64,
+    pub lower_bound: String,
+    pub upper_bound: String,
     pub limit: i32,                 // default: 10
     pub reverse: bool,              // default: false
     pub show_payer: bool            // default: false
@@ -403,8 +393,7 @@ pub struct EOSGetTableRowsResponse
 {
     pub rows: Vec<String>,
     pub more: bool,
-    #[serde(with = "string")]
-    pub next_key: u64
+    pub next_key: String
 }
 
 // Required to de-/serialize u64 <-> String for use in JSON strings
@@ -465,24 +454,35 @@ pub struct TokenContract
 
 impl HasMerkleTree for TokenContract
 {
-    async fn get_merkle_path(
+    async fn get_sister_path(
         &mut self,
-        leaf_index: u64,
+        array_index: u64,
         leaf_count: u64,
     ) -> MerklePath
     {
         // only merkle trees with depth up to 32 are supported by the circuit design
         assert!(MERKLE_DEPTH_ORCHARD <= 32);
-        assert!(leaf_index < leaf_count);
+        let tree_index = array_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let latest_tree_index = leaf_count / MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD);
+        let mut last_node_in_row = {
+            if tree_index == latest_tree_index
+            {
+                MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_count % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1
+            }
+            else
+            {
+                // last node/leaf in tree
+                MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1
+            }
+        };
+        let mut idx = array_index % MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        // check if index is really a leaf (and not a merkle node somewhere in the middle of the tree)
+        assert!(idx >= MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD));
         // initialize return values: position is the leaf_index in the >local< tree
-        let position = (leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD)) as u32;
+        let position = (idx - MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD)) as u32;
         let mut auth_path = vec![EMPTY_ROOTS[0]; MERKLE_DEPTH_ORCHARD];
-
         // calculate tree offset
-        let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let mut idx = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + position as u64;
-        let mut last_node_in_row = MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_count % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD) - 1;
+        let tos = tree_index * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
 
         // walk through the tree (bottom to root)
         for d in 0..MERKLE_DEPTH_ORCHARD
@@ -497,12 +497,12 @@ impl HasMerkleTree for TokenContract
                 self.node_buffer[&sis_idx_tos]
             } else {
                 // if the sister index is greater than last_node_in_row it is an empty root
-                let (i, v) = if sis_idx > last_node_in_row { 
-                    (sis_idx_tos, EMPTY_ROOTS[d]) 
+                let v = if sis_idx > last_node_in_row {
+                    EMPTY_ROOTS[d]
                 } else {
                     self.get_merkle_hash(sis_idx_tos).await.unwrap()
                 };
-                self.node_buffer.insert(i, v);
+                self.node_buffer.insert(sis_idx_tos, v);
                 v
             };
             // set idx and last_node_in_row to parent node indices:
@@ -513,6 +513,45 @@ impl HasMerkleTree for TokenContract
 
         assert_eq!(auth_path.len(), MERKLE_DEPTH_ORCHARD);
         MerklePath::from_parts(position, auth_path.try_into().unwrap())
+    }
+
+    async fn get_merkle_index(
+        &self,
+        hash: ExtractedNoteCommitment
+    ) -> Option<u64>
+    {
+        let hash_str = format!("{}{}{}{}",
+            hex::encode(hash.inner().0[0].to_le_bytes()),
+            hex::encode(hash.inner().0[1].to_le_bytes()),
+            hex::encode(hash.inner().0[2].to_le_bytes()),
+            hex::encode(hash.inner().0[3].to_le_bytes())
+        );
+        // prepare POST request to fetch from EOSIO multiindex table
+        let payload = EOSGetTableRowsPayload{
+            code: "thezeostoken".to_string(),
+            table: "mteosram".to_string(),
+            scope: "thezeostoken".to_string(),
+            index_position: "secondary".to_string(),
+            key_type: "sha256".to_string(),
+            encode_type: "hex".to_string(),
+            lower_bound: hash_str.clone(),
+            upper_bound: hash_str,
+            limit: 1,
+            reverse: false,
+            show_payer: false
+        };
+
+        let res = self.get_table_rows(&mut payload.clone()).await;
+        if res.rows.len() == 0
+        {
+            return None;
+        }
+        // extract serialized node data and parse 'index' (ignore 'MerkleHash')
+        let mut arr = [0; 40];
+        assert!(hex::decode_to_slice(res.rows[0].clone(), &mut arr).is_ok());
+        let index = u64::from_le_bytes(arr[0..8].try_into().unwrap());
+
+        Some(index)
     }
 }
 
@@ -534,7 +573,7 @@ impl TokenContract
         let mut res = EOSGetTableRowsResponse{
             rows: Vec::new(),
             more: false,
-            next_key: 0
+            next_key: 0.to_string()
         };
         loop
         {
@@ -571,7 +610,17 @@ impl TokenContract
             // if there's more update payload struct and repeat
             if tmp.more
             {
-                payload.lower_bound = tmp.next_key;
+                // if key type is not primary there can be more than one match per key. In order to
+                // prevent an endless loop here (if next key equals lower bound of last payload) we
+                // break the loop in that case. The number of desired results is defined by 'limit'.
+                if payload.key_type != "primary" && payload.lower_bound != tmp.next_key
+                {
+                    payload.lower_bound = tmp.next_key;
+                }
+                else
+                {
+                    break;
+                }
             }
             else
             {
@@ -585,7 +634,7 @@ impl TokenContract
     pub async fn get_merkle_hash(
         &self,
         index: u64
-    ) -> Option<(u64, MerkleHashOrchard)>
+    ) -> Option<MerkleHashOrchard>
     {
         // prepare POST request to fetch from EOSIO multiindex table
         let payload = EOSGetTableRowsPayload{
@@ -594,9 +643,9 @@ impl TokenContract
             scope: "thezeostoken".to_string(),
             index_position: "primary".to_string(),
             key_type: "uint64_t".to_string(),
-            encode_type: "dec".to_string(),
-            lower_bound: index,
-            upper_bound: index,
+            encode_type: "hex".to_string(),
+            lower_bound: index.to_string(),
+            upper_bound: index.to_string(),
             limit: 1,
             reverse: false,
             show_payer: false
@@ -607,10 +656,9 @@ impl TokenContract
         {
             return None;
         }
-        // extract serialized node data and parse to (index, MerkleHash) tuple
+        // extract serialized node data and parse 'MerkleHash' (ignore 'index')
         let mut arr = [0; 40];
         assert!(hex::decode_to_slice(res.rows[0].clone(), &mut arr).is_ok());
-        let index = u64::from_le_bytes(arr[0..8].try_into().unwrap());
         let value = MerkleHashOrchard::from(Fp([
             u64::from_le_bytes(arr[ 8..16].try_into().unwrap()),
             u64::from_le_bytes(arr[16..24].try_into().unwrap()),
@@ -618,74 +666,9 @@ impl TokenContract
             u64::from_le_bytes(arr[32..40].try_into().unwrap())
         ]));
         
-        Some((index, value))
+        Some(value)
     }
 
-    pub async fn is_correct_leaf_index(
-        &mut self,
-        nc: MerkleHashOrchard,
-        leaf_index: u64
-    ) -> bool
-    {
-        let leaf_idx = leaf_index % MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD);
-        let tree_idx = leaf_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let tos = tree_idx * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
-        let idx = tos + MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD) + leaf_idx;
-
-        if self.node_buffer.contains_key(&idx)
-        {
-            self.node_buffer[&idx] == nc
-        }
-        else
-        {
-            let x = self.get_merkle_hash(idx).await;
-            if x.is_some()
-            {
-                let (i, v) = x.unwrap();
-                self.node_buffer.insert(i, v);
-                v == nc
-            }
-            else
-            {
-                false
-            }
-        }
-    }
-
-    pub async fn determine_leaf_index(
-        &mut self,
-        note: &mut NoteEx,
-        leaf_count: u64
-    )
-    {
-        let nc = MerkleHashOrchard::from(ExtractedNoteCommitment::from(note.note.commitment()).inner());
-        let mut delta = 0;
-        loop
-        {
-            let r = note.leaf_index + delta;
-            let l = note.leaf_index as i128 - delta as i128;
-
-            if r < leaf_count && self.is_correct_leaf_index(nc, r).await
-            {
-                note.leaf_index = r;
-                return;
-            }
-            if l >= 0 && self.is_correct_leaf_index(nc, l as u64).await
-            {
-                note.leaf_index = l as u64;
-                return;
-            }
-
-            delta += 1;
-        }
-    }
-
-/*
-    pub fn clear_node_buffer(&mut self)
-    {
-        self.node_buffer.clear();
-    }
-*/
     pub async fn get_global_state(&self) -> Global
     {
         // prepare POST request to fetch from EOSIO singleton table
@@ -752,8 +735,8 @@ impl TokenContract
             index_position: "primary".to_string(),
             key_type: "uint64_t".to_string(),
             encode_type: "dec".to_string(),
-            lower_bound: from,
-            upper_bound: to,
+            lower_bound: from.to_string(),
+            upper_bound: to.to_string(),
             limit: 10,
             reverse: false,
             show_payer: false
@@ -764,11 +747,10 @@ impl TokenContract
         for str in res.rows
         {
             // parse serialized EOS data
-            let mut arr = [0; 8+8+8+1+32*2+2+ENC_CIPHERTEXT_SIZE*2+2+OUT_CIPHERTEXT_SIZE*2];
+            let mut arr = [0; 8+8+1+32*2+2+ENC_CIPHERTEXT_SIZE*2+2+OUT_CIPHERTEXT_SIZE*2];
             assert!(hex::decode_to_slice(str, &mut arr).is_ok());
             let id = u64::from_le_bytes(arr[0..8].try_into().unwrap());
             let block_number = u64::from_le_bytes(arr[8..16].try_into().unwrap());
-            let leaf_index = u64::from_le_bytes(arr[16..24].try_into().unwrap());
             // skip reading string sizes since we already know the exact length
             let epk_bytes: [u8; 32*2] = arr[24+1..24+1+32*2].try_into().unwrap();
             let enc_ciphertext: [u8; ENC_CIPHERTEXT_SIZE*2] = arr[24+1+32*2+2..24+1+32*2+2+ENC_CIPHERTEXT_SIZE*2].try_into().unwrap();
@@ -785,7 +767,6 @@ impl TokenContract
             v.push(TransmittedNoteCiphertextEx{
                 id,
                 block_number,
-                leaf_index,
                 encrypted_note: TransmittedNoteCiphertext{
                     epk_bytes,
                     enc_ciphertext,
@@ -855,8 +836,8 @@ impl TokenContract
             index_position: "primary".to_string(),
             key_type: "uint64_t".to_string(),
             encode_type: "dec".to_string(),
-            lower_bound: 0,
-            upper_bound: u64::MAX,
+            lower_bound: 0.to_string(),
+            upper_bound: u64::MAX.to_string(),
             limit: 10,
             reverse: false,
             show_payer: false
@@ -901,5 +882,32 @@ impl TokenContract
 
         // 'no-cors' mode doesn't allow the browser to read any response content.
         // see: https://stackoverflow.com/a/54906434/2340535
+    }
+}
+
+#[cfg(test)]
+mod tests
+{
+    use crate::tree::EMPTY_ROOTS;
+
+    use super::MERKLE_DEPTH_ORCHARD;
+
+    #[test]
+    fn test_macros()
+    {
+        println!("{}", MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD));
+        println!("{}", MT_ARR_LEAF_ROW_OFFSET!(MERKLE_DEPTH_ORCHARD));
+        println!("{}", MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD));
+
+        let array_index = 77;
+        let tree_index = array_index / MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD);
+        let leaf_index = array_index - (tree_index + 1) * MT_ARR_FULL_TREE_OFFSET!(MERKLE_DEPTH_ORCHARD) + (tree_index + 1) * MT_NUM_LEAVES!(MERKLE_DEPTH_ORCHARD);
+        println!("{}", leaf_index);
+
+        println!("empty roots:");
+        for r in EMPTY_ROOTS.iter()
+        {
+            println!("{}", hex::encode(r.inner().0[0].to_le_bytes()));
+        }
     }
 }

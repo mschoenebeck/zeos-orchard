@@ -4,9 +4,16 @@
 <body>
     <!-- load wasm as --target web https://rustwasm.github.io/wasm-bindgen/examples/without-a-bundler.html -->    
     <script type="module">
-        import init, { Wallet } from './pkg_st/zeos_orchard.js';
+        import init, { Wallet, test_merkle_index_fetch, test_merkle_hash_fetch, test_merkle_path_fetch } from './pkg_st/zeos_orchard.js';
         await init();
         console.log('wasm loaded');
+
+        console.log("test test_merkle_hash_fetch...");
+        console.log(await test_merkle_hash_fetch("1"));
+        console.log("test merkle index fetch...");
+        console.log(await test_merkle_index_fetch("0cffffff84a9c3cf3e30e5be1bd11110ffffffffffffffffffffffffffffff3f"));
+        console.log("test test_merkle_path_fetch...");
+        console.log(await test_merkle_path_fetch("30", "18"));
 
         console.log("create wallet...");
         var sender = Wallet.new("This is the sender wallets seed string. It must be at least 32 characters long!")
