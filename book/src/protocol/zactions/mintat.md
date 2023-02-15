@@ -1,11 +1,11 @@
 # MINTAT
-Mints a new authenticator token. This action does not require a zero knowledge proof. Authenticator tokens do not (directly) represent real assets and thus have no leaves in the merkle tree. Instead, the corresponding note commitment of an authenticator token is used as an *identifier* for third party smart contracts where assets are privately deposited. By proving knowledge of the secret randomness of an authenticator token, the deposited assets asociated with this token can be withdrawn from the third party smart contract at a later point in time.
+Mints a new authenticator token. This action does not require a zero knowledge proof. Authenticator tokens do not (directly) represent real assets and thus have no leaves in the merkle tree. Instead, the corresponding $\NoteCommit$ of an authenticator token is used as an *identifier* for third party smart contracts where assets are privately deposited. By proving knowledge of the secret randomness of an authenticator token, the deposited assets asociated with this token can be withdrawn from the third party smart contract at a later point in time.
 
 ## Privacy Implications
 No assets are being moved by this action.
 
 ## Flow
-The following steps specify the flow of MINTFT.
+The following steps specify the flow of MINTAT.
 
 ### Step 1
 Create a new UTXO tuple $\mathsf{note_b}$ representing the permission:

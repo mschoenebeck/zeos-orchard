@@ -7,13 +7,13 @@ The equation applies:
 
 $$\mathsf{note_{old}.v} = \mathsf{note_{new}.v} + \mathsf{v_{net}}$$
 
-where $\mathsf{.v}$ refers to the *value* (i.e. the amount of ZEC) of a UTXO as defined in section 3.2 (p.14) of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
+where $\mathsf{.v}$ refers to the *value* (i.e. the amount of [ZEC](https://coinmarketcap.com/currencies/zcash/)) of a UTXO as defined in section 3.2 (p.14) of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
 
 The value $\mathsf{v_{net}}$ thus expresses whether the UTXO transfer of a single Orchard action results in a positive or negative *value surplus*. Over the entire transaction - i.e. over the sum of all actions - $\mathsf{v_{net}}$ must obviously result in zero. This means that the sum of all inputs of a transaction must be equal to the sum of all outputs.
 
-However, the actual value surplus of an action remains secret - just like the private inputs of the circle (i.e. the sensitive UTXO data). Instead, only a so-called $\mathsf{ValueCommit}$ of $\mathsf{v_{net}}$ is published, which is specified in section 5.4.8.3 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
+However, the actual value surplus of an action remains secret - just like the private inputs of the circuit (i.e. the sensitive UTXO data). Instead, only a so-called $\mathsf{ValueCommit}$ of $\mathsf{v_{net}}$ is published, which is specified in section 5.4.8.3 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
 
-The $\mathsf{ValueCommit}$ is a [Pedersen Commitment](https://findora.org/faq/crypto/pedersen-commitment-with-elliptic-curves/) that has special cryptographic properties such as homomorphic addition. This property allows for the $\mathsf{v_{net}}$ values of all actions of the same transaction to be balanced without having to disclose the actual differences $\mathsf{v_{net}}$ of individual actions publicly: The homomorphic encrypted $\mathsf{ValueCommit}$ of all individual actions can be summed up and eventually balanced with a single *transparent* value from the transparent value pool (in case the sum is not zero). See section 4.14 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf) to learn more about the final balancing value of a shielded transaction.
+The $\mathsf{ValueCommit}$ is a [Pedersen Commitment](https://findora.org/faq/crypto/pedersen-commitment-with-elliptic-curves/) that has special cryptographic properties such as homomorphic addition. This property allows for the $\mathsf{v_{net}}$ values of all actions of the same transaction to be balanced without having to disclose the actual differences $\mathsf{v_{net}}$ of individual actions publicly: The homomorphically encrypted $\mathsf{ValueCommit}$ of all individual actions can be summed up and eventually balanced with a single *transparent* value from the transparent value pool (in case the sum is not zero). See section 4.14 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf) to learn more about the final balancing value of a shielded transaction.
 
 A shielded transaction in Zcash Orchard therefore either *generates* a transparent *output* ($\mathsf{v_{net}} > 0$), or it *consumes* a transparent *input* ($\mathsf{v_{net}} < 0$), or $\mathsf{v_{net}}$ equals zero, in which case it is a fully shielded transaction with no inputs or outputs from the transparent value pool.
 
@@ -23,7 +23,7 @@ The flexibility of this circuit design therefore allows the four different types
 3. shielded → shielded ($\mathsf{v_{net}} = 0$, resembles a shielded transfer)
 4. mixed → mixed (either *mint* + shielded transfer or *burn* + shielded transfer)
 
-The following schematic shows a highly simplified representation of the Zcash Orchard top level arithmetic circuit, reduced to the essential components. The black inputs are the *private inputs* of the arithmetic circuit and the blue inputs are the *public inputs*.
+The following schematic shows a highly simplified representation of the Zcash Orchard top level arithmetic circuit, reduced to the essential components. The black inputs are the *private inputs* of the arithmetic circuit and the blue inputs are the *public inputs*. Only if *all* equality gates (==) resolve to *true* the output of the circuit is $1$, otherwise it is $0$.
 
 <img align="center" src="https://github.com/mschoenebeck/zeos-docs/blob/main/book/protocol/zcash_circuit_schematic.png?raw=true">
 

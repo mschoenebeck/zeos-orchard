@@ -29,3 +29,8 @@
     - [step](protocol/proof-bundling/step.md)
     - [exec](protocol/proof-bundling/exec.md)
 - [Application](application.md)
+  - [Library](application/library.md)
+  - [Smart Contract](application/contract.md)
+  - [UI](application/ui.md)
+  - [Validator](application/validator.md)
+  - [Proxy](application/proxy.md)

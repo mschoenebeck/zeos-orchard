@@ -19,14 +19,14 @@ To cover all three ZEOS token types, the Zcash Orchard Note Tuple (as defined in
 - $\mathsf{d2}$ is an integer representing either the *symbol* of the UTXO (fungible token) or the upper 64 bits of an *identifier* (non-fungible token)
 - $\mathsf{sc}$ is an integer representing the *code* of the issuing smart contract
 - $\mathsf{nft}$ is a boolean determining if this UTXO is a fungible token (FT) or non-fungible token (NFT or AT)
-- $\rho$ is used to derive the nullifier of the UTXO
+- $\rho$ is randomness used to derive the nullifier of the UTXO
 - $\psi$ is additional randomness used in deriving the nullifier
 - $\mathsf{rcm}$ is a random commitment trapdoor as defined in section 4.1.8 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)
 
 Note: In addition to the above listed attributes each UTXO struct contains a header field (64 bit) and a memo field (512 bytes).
 
 ## Commitment
-When UTXOs are created (through minting or transfer), only a cryptographic *commitment* called $\NoteCommit$ to the tupel attributes listed above is publicly disclosed and added to a global data structure called *Commitment Tree*. This allows the sensitive information such as amount, symbol, and recipient of the UTXO to be kept secret, while the commitment is used by the zk-SNARK proof to verify that the UTXO's secret information is valid.
+When UTXOs are created (through minting or transfer), only a cryptographic *commitment* called $\NoteCommit$ to the tupel attributes listed above is publicly disclosed and added to a global data structure called [Commitment Tree](datasets.md#commitment-tree). This allows the sensitive information such as amount, symbol, and recipient of the UTXO to be kept secret, while the commitment is used by the zk-SNARK proof to verify that the UTXO's secret information is valid.
 
 Since the UTXO tuple has been extended for the ZEOS Orchard Shielded Protocol, the definition of the UTXO Commitment must also be modified. The original $\NoteCommit$ is defined in section 5.4.8.4 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf). It is changed to:
 
@@ -41,7 +41,7 @@ $$\NoteCommit_{\mathsf{rcm}}^{\mathsf{Orchard}}(\DiversifiedTransmitBaseRepr, \D
   \ItoLEBSP{64}(\mathsf{sc}))$$
 
 ## Nullifier
-Each UTXO has a unique *nullifier* which is deterministically derived from the UTXO tuple. Spending a UTXO invalidates it by publicly revealing the associated nullifier and adding it to the global set of all nullifiers called *Nullifier Set*. Analogous to the UTXO commitment, this way the sensitive information (amount, symbol, receiver) of the UTXO can be kept secret, while the nullifier is used by the zk-SNARK proof to check whether the nullifier is valid. That is, whether it actually nullifies an existing valid UTXO. Furthermore, the smart contract must check if the nullifier does not yet exist in the global set of all nullifiers to avoid double spends.
+Each UTXO has a unique *nullifier* which is deterministically derived from the UTXO tuple. Spending a UTXO invalidates it by publicly revealing the associated nullifier and adding it to the global set of all nullifiers called [Nullifier Set](datasets.md#nullifier-set). Analogous to the UTXO commitment, this way the sensitive information (amount, symbol, receiver) of the UTXO can be kept secret, while the nullifier is used by the zk-SNARK proof to check whether the nullifier is valid. That is, whether it actually nullifies an existing valid UTXO. Furthermore, the smart contract must check if the nullifier does not yet exist in the global set of all nullifiers to avoid double spends.
 
 The exact function for deriving the nullifier is defined in section 4.16 of the [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf).
 
@@ -49,4 +49,4 @@ $$\mathsf{DeriveNullifier_{nk}}(\rho, \psi, \mathsf{cm}) = \mathsf{Extract_{\mat
 
 where $\mathsf{cm}$ is the $\NoteCommit$ value of the corresponding UTXO.
 
-No modification is required, since it depends only on the UTXO randomness as well as its commitment. The latter has already been adapted to the new UTXO tuple structure (see previous section).
+No modification is required, since it depends only on the UTXO randomness as well as its commitment. The latter has already been adapted to the new UTXO tuple structure (see [Commitment](#commitment)).
